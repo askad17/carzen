@@ -1,0 +1,186 @@
+.rent-section{
+    padding: 60px 0;
+    background-color: #000000;
+    position: relative;
+    color: white;
+    margin-top: 60px;
+}
+.rent-title{
+    font-size: 128px;
+    font-weight: 500;
+    color: #74E6FF;
+    text-align: center;
+    z-index: -1;
+}
+.rent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 100px;
+    z-index: 0;
+    position: relative;
+    top: -55px;
+}
+.rent-card{
+    background-image: url(/image/bmw_m440-2.png);
+    height: 320px;
+    max-width: 250px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+}
+.rent-card:hover{
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(116, 230, 255, 0.1);
+}
+.up-block{
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.card-title, .price{
+    font-size: 16px;
+    font-weight: 500;
+}
+.advice, .box, .people{
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 4px 7px;
+    font-size: 10px;
+    font-weight: 400;
+    width: auto;
+    max-width: fit-content;
+}
+.down-block{
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.mileage{
+    font-size: 10px;
+    font-weight: 400;
+}
+.down-left{
+    display: flex;
+    flex-direction: row;
+    gap: 9px;
+}
+
+/* Promo Section */
+.promo-section {
+    padding: 40px 0;
+    background-color: #000000;
+}
+
+.promo-content {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: space-between;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.promo-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.promo-label {
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: #ffffff;
+}
+
+.promo-code {
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #74E6FF;
+    background-color: rgba(116, 230, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(116, 230, 255, 0.3);
+}
+
+.btn-promo {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: 16px 32px;
+    font-family: Onest, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    max-width: 200px;
+    height: 40px;
+    background-color: transparent;
+    border: 2px solid #74E6FF;
+    border-radius: 8px;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-promo:hover {
+    background-color: #74E6FF;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(116, 230, 255, 0.3);
+}
+
+.btn-promo:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 968px) {
+    .rent-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .rent-title{
+        font-size: 96px;
+    }
+
+    .promo-section {
+        padding: 35px 0;
+    }
+    
+    .promo-label,
+    .promo-code {
+        font-size: 16px;
+    }
+}
+@media (max-width: 576px) {
+    .rent-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .rent-title{
+        font-size: 64px;
+    }
+    .promo-section {
+        padding: 30px 0;
+    }
+    
+    .promo-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    
+    .promo-label,
+    .promo-code {
+        font-size: 15px;
+    }
+    
+    .btn-promo {
+        width: 100%;
+        padding: 12px 24px;
+    }
+}

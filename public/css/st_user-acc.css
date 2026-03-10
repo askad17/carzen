@@ -1,0 +1,463 @@
+/* Profile Section */
+.profile-section {
+    padding: 80px 0;
+    background-color: #000000;
+    min-height: 80vh;
+    margin-top: 60px;
+}
+
+.profile-title {
+    font-family: Onest, sans-serif;
+    font-size: 42px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0 0 50px 0;
+}
+
+.profile-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* Profile Header */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 30px;
+}
+
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid #74E6FF;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-family: Onest, sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+}
+
+.profile-age {
+    font-family: Onest, sans-serif;
+    font-size: 16px;
+    color: #747474;
+    margin: 0 0 20px 0;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-profile {
+    padding: 12px 24px;
+    font-family: Onest, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.btn-details {
+    background-color: rgba(24, 24, 24, 0.8);
+    color: #ffffff;
+    border-color: #2F2F2F;
+}
+
+.btn-details:hover {
+    border-color: #74E6FF;
+    color: #74E6FF;
+    transform: translateY(-2px);
+}
+
+.btn-logout {
+    background-color: transparent;
+    color: #74E6FF;
+    border-color: transparent;
+}
+
+.btn-logout:hover {
+    background-color: rgba(116, 230, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Profile Content */
+.profile-content {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+}
+
+/* Profile Menu */
+.profile-menu {
+    background-color: #0a0a0a;
+    border: 1.5px solid #2F2F2F;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    font-family: Onest, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: #999999;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+    background-color: rgba(116, 230, 255, 0.1);
+    color: #74E6FF;
+}
+
+.menu-item svg {
+    stroke: #747474;
+    transition: stroke 0.3s ease;
+}
+
+.menu-item:hover svg {
+    stroke: #74E6FF;
+}
+
+/* Profile Main */
+.profile-main {
+    border: 1.5px solid #74E6FF;
+    border-radius: 12px;
+    padding: 40px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rentals-empty {
+    text-align: center;
+}
+
+.empty-text {
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: #747474;
+    margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .profile-section {
+        padding: 60px 0;
+    }
+    
+    .profile-title {
+        font-size: 36px;
+    }
+    
+    .profile-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-menu {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .menu-item {
+        flex: 1;
+        min-width: 150px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .profile-section {
+        padding: 40px 0;
+    }
+    
+    .profile-title {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 25px;
+    }
+    
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .profile-name {
+        font-size: 20px;
+    }
+    
+    .profile-age {
+        font-size: 15px;
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-profile {
+        width: 100%;
+    }
+    
+    .profile-menu {
+        flex-direction: column;
+    }
+    
+    .menu-item {
+        min-width: 100%;
+    }
+    
+    .profile-main {
+        padding: 30px;
+        min-height: 200px;
+    }
+    
+    .empty-text {
+        font-size: 16px;
+    }
+}
+/* User Info Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-container {
+    background-color: #0a0a0a;
+    border: 2px solid #74E6FF;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    padding: 40px;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-overlay.active .modal-container {
+    transform: scale(1) translateY(0);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: #747474;
+    cursor: pointer;
+    padding: 5px;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+.modal-close:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+    font-family: Onest, sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0 0 30px 0;
+}
+
+.user-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.user-info-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 1px solid #74E6FF;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.user-fullname {
+    font-family: Onest, sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0;
+    text-align: left;
+}
+
+.user-birthdate,
+.user-phone,
+.user-email {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    color: #999999;
+    margin: 0;
+    text-align: left;
+}
+
+
+.credential-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+
+
+.credential-label {
+    font-family: Onest, sans-serif;
+    font-size: 13px;
+    color: #747474;
+}
+
+.credential-value {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.btn-change {
+    width: 100%;
+    height: 40px;
+    background-color: #74E6FF;
+    border: none;
+    border-radius: 8px;
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px 0;
+}
+
+.btn-change:hover {
+    background-color: #4DD4FF;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(116, 230, 255, 0.3);
+}
+
+.btn-change:active {
+    transform: translateY(0);
+}
+
+.registration-date {
+    margin-top: 10px;
+    padding-top: 20px;
+    border-top: 1px solid #2F2F2F;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.reg-label {
+    font-family: Onest, sans-serif;
+    font-size: 13px;
+    color: #747474;
+}
+
+.reg-value {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .modal-container {
+        padding: 30px 20px;
+    }
+    
+    .modal-title {
+        font-size: 24px;
+    }
+    
+    .user-fullname {
+        font-size: 18px;
+    }
+    
+    .user-birthdate,
+    .user-phone,
+    .user-email,
+    .credential-value,
+    .reg-value {
+        font-size: 14px;
+    }
+}

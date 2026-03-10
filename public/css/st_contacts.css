@@ -1,0 +1,167 @@
+/* Contacts Section */
+.contacts-section {
+    padding: 80px 0;
+    background-color: #000000;
+}
+
+.contacts-title {
+    font-family: Onest, sans-serif;
+    font-size: 42px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 30px 0 50px 0;
+}
+
+.contacts-wrapper {
+    display: flex;
+    gap: 60px;
+}
+
+.contacts-info {
+    flex: 0 0 45%;
+}
+
+.contacts-general {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #181818;
+}
+
+.contact-item {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: #999999;
+    margin: 0 0 7px 0;
+    line-height: 1.6;
+}
+
+.contact-item.highlight {
+    color: #74E6FF;
+    font-weight: 500;
+}
+
+.contact-link {
+    color: #999999;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid transparent;
+}
+
+.contact-link:hover {
+    color: #74E6FF;
+    border-bottom-color: #74E6FF;
+}
+
+.contact-text {
+    color: #999999;
+}
+
+.contacts-cities {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.city-block {
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0;
+}
+
+.city-block:nth-child(1) { animation-delay: 0.1s; }
+.city-block:nth-child(2) { animation-delay: 0.2s; }
+.city-block:nth-child(3) { animation-delay: 0.3s; }
+
+.city-name {
+    font-family: Onest, sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0 0 7px 0;
+}
+
+.contacts-map {
+    flex: 0 0 55%;
+}
+
+.map-container {
+    width: 100%;
+    height: 600px;
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .contacts-section {
+        padding: 60px 0;
+    }
+    
+    .contacts-title {
+        font-size: 36px;
+        margin-bottom: 40px;
+    }
+    
+    .contacts-wrapper {
+        flex-direction: column;
+        gap: 40px;
+    }
+    
+    .contacts-info,
+    .contacts-map {
+        flex: 0 0 100%;
+    }
+    
+    .map-container {
+        height: 400px;
+    }
+}
+
+@media (max-width: 576px) {
+    .contacts-section {
+        padding: 40px 0;
+    }
+    
+    .contacts-title {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+    
+    .contacts-general {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+    }
+    
+    .contact-item {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .city-name {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+    
+    .contacts-cities {
+        gap: 25px;
+    }
+    
+    .map-container {
+        height: 300px;
+        border-radius: 8px;
+    }
+}
