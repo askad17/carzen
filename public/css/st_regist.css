@@ -14,7 +14,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Registration Page */
 .registration-page {
     position: relative;
     min-height: 100vh;
@@ -49,7 +48,6 @@ body {
     text-align: left;
 }
 
-/* Form Styles */
 .registration-form {
     display: flex;
     flex-direction: column;
@@ -121,12 +119,15 @@ body {
 }
 
 .form-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     text-align: center;
     margin-top: 15px;
     animation: fadeInUp 0.6s ease 0.6s backwards;
 }
 
-.login-link {
+.login-link, .back-link {
     font-family: Onest, sans-serif;
     font-size: 14px;
     color: #747474;
@@ -135,12 +136,11 @@ body {
     transition: all 0.3s ease;
 }
 
-.login-link:hover {
+.login-link:hover, .back-link:hover{
     color: #74E6FF;
     border-bottom-color: #74E6FF;
 }
 
-/* Animated Lines Background */
 .animated-lines {
     position: fixed;
     top: 0;
@@ -214,7 +214,6 @@ body {
     animation: gridMove 20s linear infinite;
 }
 
-/* Notification */
 .notification {
     position: fixed;
     top: 20px;
@@ -247,7 +246,6 @@ body {
     flex-shrink: 0;
 }
 
-/* Animations */
 @keyframes moveLine {
     0% {
         transform: translateX(0);
@@ -296,7 +294,6 @@ body {
     }
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .registration-card {
         padding: 40px 25px;
@@ -350,7 +347,7 @@ body {
     }
     
     .line {
-        display: none; /* Отключаем линии на мобильных для производительности */
+        display: none; 
     }
     
     .grid-overlay {

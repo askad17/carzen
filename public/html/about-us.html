@@ -21,7 +21,7 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-            <!-- Иконка пользователя -->
+
             <div class="header-right">
                 <a href="/public/html/user-account.html">
             <div class="user-icon">
@@ -62,7 +62,7 @@
     </div>
     </section>
 
-    <!-- About Company Section -->
+
 <section class="about-section">
     <div class="container">
         <h2 class="section-title">О компании</h2>
@@ -102,7 +102,6 @@
     </div>
 </section>
 
-<!-- Terms Section -->
 <section class="terms-section">
     <div class="container">
         <h2 class="section-title">Условия пользования</h2>
@@ -188,10 +187,10 @@
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -203,7 +202,7 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
 
 
 <footer class="footer">
@@ -270,7 +269,10 @@
         </div>
     </div>
     </footer>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/src_us.js"></script>
+    <script src="/public/js/consultation.js"></script>
 </body>
 </html>

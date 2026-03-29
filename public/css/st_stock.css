@@ -10,15 +10,13 @@
     font-weight: 500;
     color: #74E6FF;
     text-align: center;
-    z-index: -1;
 }
 .rent-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 100px;
-    z-index: 0;
-    position: relative;
-    top: -55px;
+    justify-content: center;
+    margin: 0 auto;
 }
 .rent-card{
     background-image: url(/image/bmw_m440-2.png);
@@ -68,7 +66,6 @@
     gap: 9px;
 }
 
-/* Promo Section */
 .promo-section {
     padding: 40px 0;
     background-color: #000000;
@@ -140,7 +137,9 @@
 @media (max-width: 968px) {
     .rent-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
+        gap: 30px;
+        max-width: 600px;
+        margin: 0 auto;
     }
 
     .rent-title{
@@ -159,13 +158,22 @@
 @media (max-width: 576px) {
     .rent-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 20px;
+        max-width: 250px;
+        margin: 0 auto;
+    }
+    
+    .rent-card {
+        width: 250px;
+        max-width: 100%;
     }
     .rent-title{
         font-size: 64px;
+        margin-bottom: 40px;
     }
     .promo-section {
         padding: 30px 0;
+        display: flex;
     }
     
     .promo-content {
@@ -182,5 +190,98 @@
     .btn-promo {
         width: 100%;
         padding: 12px 24px;
+    }
+}
+.promo-section {
+    padding: 40px 0;
+    background-color: #000000;
+}
+
+.promo-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.promo-label {
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: #ffffff;
+}
+
+.promo-code {
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #74E6FF;
+    background-color: rgba(116, 230, 255, 0.1);
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 2px solid rgba(116, 230, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    position: relative;
+}
+
+.promo-code:hover {
+    background-color: rgba(116, 230, 255, 0.2);
+    border-color: #74E6FF;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(116, 230, 255, 0.3);
+}
+
+.promo-code:active {
+    transform: scale(0.98);
+}
+
+.promo-code.copied {
+    background-color: rgba(76, 175, 80, 0.2);
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.copy-notification {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 2px solid #4CAF50;
+    border-radius: 8px;
+    color: #4CAF50;
+    font-family: Onest, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    position: absolute;
+    z-index: 10;
+}
+
+.copy-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.copy-notification svg {
+    stroke: #4CAF50;
+}
+
+@media (max-width: 576px) {
+    .promo-text {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .promo-code {
+        font-size: 16px;
+        padding: 8px 14px;
     }
 }

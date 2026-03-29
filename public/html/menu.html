@@ -22,7 +22,7 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-            <!-- Иконка пользователя -->
+
             <div class="header-right">
                 <a href="/public/html/user-account.html">
             <div class="user-icon">
@@ -46,16 +46,14 @@
 
     <section class="hero">
     <div class="hero-bg"></div>
-    
-    <!-- Машина на заднем плане -->
+
     <div class="hero-car-bg">
         <div class="car-image-wrapper">
-            <img src="/image/menu_hero_car.png" alt="Автомобиль для аренды" class="car-bg-image">
+            <img src="/image/menu_hero_car.jpeg" alt="Автомобиль для аренды" class="car-bg-image">
             <div class="car-reflection-bg"></div>
         </div>
     </div>
-    
-    <!-- Затемнение для читаемости -->
+
     <div class="hero-overlay"></div>
     
     <div class="container hero-container">
@@ -63,8 +61,8 @@
             <h1 class="hero-title">Аренда автомобилей<br>легко</h1>
             <p class="hero-subtitle">Выберите идеальный автомобиль для ваших задач</p>
             <div class="hero-buttons">
-                <a href="#" class="btn btn-primary">Выбрать авто</a>
-                <a href="#" class="btn btn-secondary">Условия аренды</a>
+                <a href="/public/html/catalog.html" class="btn btn-primary">Выбрать авто</a>
+                <a href="/public/html/about-us.html" class="btn btn-secondary">Условия аренды</a>
             </div>
         </div>
     </div>
@@ -179,7 +177,7 @@
                     </div>
                 </div>
                 </div>
-                <div class="rent-card kiak5">
+                <a href="/public/html/kia-card.html"><div class="rent-card kiak5">
                     <div class="up-block">
                     <p class="card-title">Kia K5</p>
                     <div class="advice">
@@ -201,7 +199,7 @@
                         <!--сердечко нравится-->
                     </div>
                 </div>
-                </div>
+                </div></a>
                 <div class="rent-card toyotarav4">
                     <div class="up-block">
                     <p class="card-title">Toyota RAV4</p>
@@ -229,15 +227,38 @@
         </div>
     </section>
 
+    <section class="feedback-section">
+    <div class="container">
+        <h2 class="feedback-title">Отзывы</h2>
+        <div class="feedback-grid">
+            <div class="feedback-card">
+                <p class="feedback-name">Юлия</p>
+                <div class="feedback-data">14.03.2025</div>
+                <p class="feedback-text">Отличная компания. Удобные и хорошие автомобили. Всем советую!</p>
+            </div>
+            <div class="feedback-card">
+                <p class="feedback-name">Игорь</p>
+                <div class="feedback-data">12.01.2025</div>
+                <p class="feedback-text">Цены ниже рынка на 20%</p>
+            </div>
+            <div class="feedback-card">
+                <p class="feedback-name">Константин</p>
+                <div class="feedback-data">14.03.2025</div>
+                <p class="feedback-text">Любые классы авто на выбор</p>
+            </div>
+        </div>
+    </div>
+    </section>
+
     <section class="consultation-section">
     <div class="container">
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -249,7 +270,8 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
+
 
 
 <footer class="footer">
@@ -316,8 +338,11 @@
         </div>
     </div>
     </footer>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_menu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <script type="module" src="/public/js/consultation.js"></script>
 </body>
 </html>

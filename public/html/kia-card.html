@@ -21,7 +21,6 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-            <!-- Иконка пользователя -->
             <div class="header-right">
                 <a href="/public/html/user-account.html">
             <div class="user-icon">
@@ -45,7 +44,6 @@
 
 <section class="car-details-section">
     <div class="container">
-        <!-- Car Header -->
         <div class="car-header">
             <h1 class="car-main-title">Kia K5</h1>
             <div class="car-gallery">
@@ -55,7 +53,7 @@
                     </svg>
                 </button>
                 <div class="car-main-image">
-                    <img src="path/to/kia-k5-front.jpg" alt="Kia K5" class="main-car-image">
+                    <img src="/image/kia-k5.png" alt="Kia K5" class="main-car-image">
                 </div>
                 <button class="gallery-nav next" aria-label="Следующее фото">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -75,7 +73,6 @@
             </div>
         </div>
 
-        <!-- Specifications -->
         <div class="specs-grid">
             <div class="specs-column">
                 <div class="spec-row">
@@ -128,7 +125,6 @@
             <a href="#" class="more-info-link">Больше информации</a>
         </div>
 
-        <!-- Pricing -->
         <div class="pricing-section">
             <h2 class="pricing-title">Стоимость</h2>
             <div class="pricing-wrapper">
@@ -163,15 +159,38 @@
     </div>
     </section>
 
+    <section class="feedback-section">
+    <div class="container">
+        <h2 class="feedback-title">Отзывы</h2>
+        <div class="feedback-grid">
+            <div class="feedback-card">
+                <p class="feedback-name">Юлия</p>
+                <div class="feedback-data">14.03.2025</div>
+                <p class="feedback-text">Отличная компания. Удобные и хорошие автомобили. Всем советую!</p>
+            </div>
+            <div class="feedback-card">
+                <p class="feedback-name">Игорь</p>
+                <div class="feedback-data">12.01.2025</div>
+                <p class="feedback-text">Цены ниже рынка на 20%</p>
+            </div>
+            <div class="feedback-card">
+                <p class="feedback-name">Константин</p>
+                <div class="feedback-data">14.03.2025</div>
+                <p class="feedback-text">Любые классы авто на выбор</p>
+            </div>
+        </div>
+    </div>
+    </section>
+    
     <section class="consultation-section">
     <div class="container">
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -183,7 +202,7 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
 
 
 <footer class="footer">
@@ -250,7 +269,11 @@
         </div>
     </div>
     </footer>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_menu.js"></script>
+    <script src="/public/js/scr_kia-k5.js"></script>
+    <script src="/public/js/consultation.js"></script>
 </body>
 </html>

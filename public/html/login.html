@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="/public/css/st_login.css">
 </head>
 <body>
-    <!-- Animated Background Lines -->
     <div class="animated-lines">
         <div class="line line-1"></div>
         <div class="line line-2"></div>
@@ -15,8 +14,7 @@
         <div class="line line-4"></div>
         <div class="line line-5"></div>
     </div>
-    
-    <!-- Grid Pattern Overlay -->
+
     <div class="grid-overlay"></div>
 
     <div class="login-page">
@@ -37,13 +35,13 @@
                     
                     <div class="form-footer">
                         <a href="/public/html/regist.html" class="register-link">Зарегистрироваться</a>
+                        <a href="/public/html/menu.html" class="back-link">На главную</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Error Notification -->
     <div class="notification error" id="errorNotification">
         <div class="notification-content">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -55,6 +53,8 @@
         </div>
     </div>
 
-    <script src="/public/js/src_login.js"></script>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
+    <script type="module" src="/public/js/src_login.js"></script>
 </body>
 </html>

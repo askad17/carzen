@@ -148,10 +148,16 @@
         <div class="promo-content">
             <div class="promo-text">
                 <span class="promo-label">Скидка 7% по промокоду</span>
-                <span class="promo-code">"FIRSTCARZEN"</span>
+                <span class="promo-code" id="promoCode">"FIRSTCARZEN"</span>
             </div>
             <a class="btn-promo">Забронировать</a>
         </div>
+        <div class="copy-notification" id="copyNotification">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Промокод скопирован!</span>
+    </div>
     </div>
 </section>
 
@@ -160,10 +166,10 @@
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -175,7 +181,7 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
 
 
 <footer class="footer">
@@ -242,7 +248,11 @@
         </div>
     </div>
     </footer>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_menu.js"></script>
+    <script src="/public/js/consultation.js"></script>
+    <script src="/public/js/scr_stock.js"></script>
 </body>
 </html>

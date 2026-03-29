@@ -1,24 +1,21 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация календаря
+    
     const dateInput = flatpickr("#dates", {
-        mode: "range",           // Выбор диапазона дат
-        dateFormat: "d.m.Y",     // Формат: 27.02.2026
-        locale: "ru",            // Русский язык
-        minDate: "today",        // Минимальная дата — сегодня
-        defaultDate: [],         // Пустое значение по умолчанию
-        showMonths: 2,           // Показывать 2 месяца
-        animate: true,           // Анимация
-        static: true,            // Прикрепить к body (чтобы не обрезался)
+        mode: "range",          
+        dateFormat: "d.m.Y",    
+        locale: "ru",            
+        minDate: "today",        
+        defaultDate: [],         
+        showMonths: 2,          
+        animate: true,          
+        static: true,           
         
-        // Кастомные классы
         onReady: function(selectedDates, dateStr, instance) {
             instance.calendarContainer.classList.add('custom-flatpickr');
         },
-        
-        // При закрытии
+
         onClose: function(selectedDates, dateStr, instance) {
             if (selectedDates.length === 2) {
-                // Форматируем диапазон
                 const startDate = instance.formatDate(selectedDates[0], "d.m.Y");
                 const endDate = instance.formatDate(selectedDates[1], "d.m.Y");
                 instance.input.value = `${startDate} — ${endDate}`;
@@ -26,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     });
     
-    // Обработка кнопки поиска
+   
     const searchBtn = document.querySelector('.search-btn');
     const citySelect = document.getElementById('city');
     const brandSelect = document.getElementById('brand');
@@ -54,8 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return;
         }
-        // Успешная валидация
+
         console.log('Поиск:', { city, dates, brand });
-        // Здесь можно добавить перенаправление или AJAX запрос
+
     });
 });

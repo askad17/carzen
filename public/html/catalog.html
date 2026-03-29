@@ -21,7 +21,6 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-            <!-- Иконка пользователя -->
             <div class="header-right">
                 <a href="/public/html/user-account.html">
             <div class="user-icon">
@@ -47,7 +46,7 @@
     <div class="container">
         <h2 class="filter-title">Выберите автомобиль для себя</h2>
         <div class="filter-buttons">
-            <button class="btn-filter btn-primary">
+            <button class="btn-filter btn-primary" data-open-filters>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="4" y1="21" x2="4" y2="14"></line>
                     <line x1="4" y1="10" x2="4" y2="3"></line>
@@ -65,6 +64,203 @@
         </div>
     </div>
     </section>
+
+<div class="filters-modal-overlay" id="filtersModal">
+    <div class="filters-modal">
+        <button class="filters-close" aria-label="Закрыть фильтры">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <h2 class="filters-title">Фильтры</h2>
+
+        <form class="filters-form" id="filtersForm">
+            <div class="filter-group">
+                <label class="filter-label">Город</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="city">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-city">
+                        <div class="dropdown-option" data-value="orenburg">Оренбург</div>
+                        <div class="dropdown-option" data-value="ekaterinburg">Екатеринбург</div>
+                        <div class="dropdown-option" data-value="kazan">Казань</div>
+                        <div class="dropdown-option" data-value="moscow">Москва</div>
+                        <div class="dropdown-option" data-value="spb">Санкт-Петербург</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Дата</label>
+                <input type="date" class="filter-input-date" id="filterDate">
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Стоимость</label>
+                <div class="filter-price-inputs">
+                    <input type="number" class="filter-input" id="priceFrom" placeholder="от">
+                    <input type="number" class="filter-input" id="priceTo" placeholder="до">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Марка авто</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="brand">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-brand">
+                        <div class="dropdown-option" data-value="bmw">BMW</div>
+                        <div class="dropdown-option" data-value="mercedes">Mercedes-Benz</div>
+                        <div class="dropdown-option" data-value="audi">Audi</div>
+                        <div class="dropdown-option" data-value="toyota">Toyota</div>
+                        <div class="dropdown-option" data-value="kia">Kia</div>
+                        <div class="dropdown-option" data-value="hyundai">Hyundai</div>
+                        <div class="dropdown-option" data-value="lexus">Lexus</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Тип топлива</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="fuel">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-fuel">
+                        <div class="dropdown-option" data-value="petrol">Бензин</div>
+                        <div class="dropdown-option" data-value="diesel">Дизель</div>
+                        <div class="dropdown-option" data-value="electric">Электро</div>
+                        <div class="dropdown-option" data-value="hybrid">Гибрид</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Привод</label>
+                <div class="filter-buttons-group">
+                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="front">
+                        Передний
+                    </button>
+                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="rear">
+                        Задний
+                    </button>
+                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="all">
+                        Полный
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Страховка</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="insurance">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-insurance">
+                        <div class="dropdown-option" data-value="osago">ОСАГО</div>
+                        <div class="dropdown-option" data-value="kasko">КАСКО</div>
+                        <div class="dropdown-option" data-value="full">Полная</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Количество мест</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="seats">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-seats">
+                        <div class="dropdown-option" data-value="2">2 места</div>
+                        <div class="dropdown-option" data-value="4">4 места</div>
+                        <div class="dropdown-option" data-value="5">5 мест</div>
+                        <div class="dropdown-option" data-value="7">7 мест</div>
+                        <div class="dropdown-option" data-value="8">8+ мест</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Коробка передач</label>
+                <div class="filter-buttons-group">
+                    <button type="button" class="filter-toggle-btn" data-field="transmission" data-value="auto">
+                        АКПП
+                    </button>
+                    <button type="button" class="filter-toggle-btn" data-field="transmission" data-value="manual">
+                        МКПП
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Тип кузова</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="body">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-body">
+                        <div class="dropdown-option" data-value="sedan">Седан</div>
+                        <div class="dropdown-option" data-value="suv">Внедорожник</div>
+                        <div class="dropdown-option" data-value="crossover">Кроссовер</div>
+                        <div class="dropdown-option" data-value="hatchback">Хэтчбек</div>
+                        <div class="dropdown-option" data-value="coupe">Купе</div>
+                        <div class="dropdown-option" data-value="cabrio">Кабриолет</div>
+                        <div class="dropdown-option" data-value="minivan">Минивэн</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Место получения авто</label>
+                <div class="filter-dropdown">
+                    <button type="button" class="filter-select-btn" data-field="pickup">
+                        <span class="select-text">Выбрать</span>
+                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="filter-dropdown-content" id="dropdown-pickup">
+                        <div class="dropdown-option" data-value="orenburg-pobeda">Оренбург, ул. Победы, 157Б</div>
+                        <div class="dropdown-option" data-value="ekb-lenina">Екатеринбург, пр. Ленина, 68/1</div>
+                        <div class="dropdown-option" data-value="kazan-baumana">Казань, ул. Баумана, 23А</div>
+                        <div class="dropdown-option" data-value="delivery">Доставка</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-actions">
+                <button type="submit" class="filters-submit-btn">
+                    Найти автомобиль
+                </button>
+                <button type="button" class="filters-reset-btn" id="resetFilters">
+                    Сбросить фильтры
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
     <section class="rent-section">
         <div class="container">
@@ -115,7 +311,7 @@
                     </div>
                 </div>
                 </div>
-                <div class="rent-card kiak5">
+                <a href="/public/html/kia-card.html"><div class="rent-card kiak5">
                     <div class="up-block">
                     <p class="card-title">Kia K5</p>
                     <div class="advice">
@@ -137,7 +333,7 @@
                         <!--сердечко нравится-->
                     </div>
                 </div>
-                </div>
+                </div></a>
                 <div class="rent-card toyotarav4">
                     <div class="up-block">
                     <p class="card-title">Toyota RAV4</p>
@@ -217,10 +413,10 @@
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -232,7 +428,7 @@
             </div>
         </div>
     </div>
-</section>
+    </section>
 
 
 <footer class="footer">
@@ -299,7 +495,11 @@
         </div>
     </div>
     </footer>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_menu.js"></script>
+    <script src="/public/js/consultation.js"></script>
+    <script src="/public/js/scr_catalog.js"></script>
 </body>
 </html>

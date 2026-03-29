@@ -2,39 +2,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
     const errorNotification = document.getElementById('errorNotification');
     
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const login = document.getElementById('login').value;
-        const password = document.getElementById('password').value;
-        
-        // Получение данных пользователя из localStorage
-        const userData = JSON.parse(localStorage.getItem('carzen_user'));
-        
-        // Проверка данных (в реальном проекте здесь был бы запрос к серверу)
-        if (userData && userData.login === login && userData.password === password) {
-            // Успешная авторизация
-            localStorage.setItem('carzen_logged_in', 'true');
-            
-            // Переход в личный кабинет
-            window.location.href = '/public/html/user-account.html';
-        } else {
-            // Ошибка авторизации
-            showErrorNotification();
-        }
-    });
-    
-    function showErrorNotification() {
-        errorNotification.classList.add('show');
-        
-        setTimeout(() => {
-            errorNotification.classList.remove('show');
-        }, 3000);
-    }
-    
-    // Проверка авторизации при загрузке
-    const isLoggedIn = localStorage.getItem('carzen_logged_in');
-    if (isLoggedIn === 'true') {
+    // Проверка: если уже авторизован — сразу в личный кабинет
+    const token = localStorage.getItem('carzen_token');
+    if (token) {
         window.location.href = '/public/html/user-account.html';
+        return;
     }
+    
+    const API_URL = 'http://localhost:3000/api';
+    
+    loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const login = document.getElementById('login').value;
+    const password = document.getElementById('password').value;
+    
+    try {
+        const response = await fetch(`${API_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ login, password })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('carzen_token', result.token);
+            localStorage.setItem('carzen_user', JSON.stringify(result.user));
+            
+            if (result.user.role === 'admin') {
+                window.location.href = '/public/html/admin-panel.html';
+            } else {
+                window.location.href = '/public/html/user-account.html';
+            }
+        } else {
+            if (errorNotification) {
+                errorNotification.classList.add('show');
+                setTimeout(() => {
+                    errorNotification.classList.remove('show');
+                }, 3000);
+            } else {
+                alert(result.error || 'Неверный логин или пароль');
+            }
+        }
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Не удалось подключиться к серверу');
+    }
+});
+
 });

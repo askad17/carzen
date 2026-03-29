@@ -11,7 +11,7 @@
     <header class="header">
         <div class="container header-container">
             <a href="#" class="logo">
-                <svg class="logo-icon"><!-- Car icon --></svg>
+                <svg class="logo-icon"></svg>
                 <span>Car</span>Zen
             </a>
             <nav class="nav">
@@ -21,7 +21,7 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-            <!-- Иконка пользователя -->
+            
             <div class="header-right">
                 <a href="/public/html/user-account.html">
             <div class="user-icon">
@@ -48,14 +48,13 @@
         <h1 class="profile-title">Личный кабинет</h1>
         
         <div class="profile-wrapper">
-            <!-- User Info -->
             <div class="profile-header">
                 <div class="profile-avatar">
                     <img src="/image/avatar.png" alt="Аватар пользователя" class="avatar-image">
                 </div>
                 <div class="profile-info">
-                    <h2 class="profile-name">Земляницкий Виктор Владимирович</h2>
-                    <p class="profile-age">25 лет</p>
+                    <h2 class="profile-name">Пользователь</h2>
+                    <p class="profile-age">** лет</p>
                     <div class="profile-actions">
                         <button class="btn-profile btn-details">Подробнее</button>
                         <button class="btn-profile btn-logout">Выйти</button>
@@ -63,7 +62,6 @@
                 </div>
             </div>
 
-            <!-- Profile Menu & Content -->
             <div class="profile-content">
                 <div class="profile-menu">
                     <a href="#" class="menu-item">
@@ -103,10 +101,10 @@
         <div class="consultation-wrapper">
             <div class="consultation-form">
                 <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields">
-                    <input type="text" class="form-input" placeholder="Город" required>
-                    <input type="text" class="form-input" placeholder="Имя" required>
-                    <input type="tel" class="form-input" placeholder="Номер телефона" required>
+                <form class="form-fields" id="consultationForm">
+                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
                     <button type="submit" class="submit-btn">Отправить</button>
                     <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
                 </form>
@@ -118,8 +116,7 @@
             </div>
         </div>
     </div>
-</section>
-
+    </section>
 
 <footer class="footer">
     <div class="container footer-container">
@@ -186,7 +183,6 @@
     </div>
     </footer>
 
-    <!-- User Info Modal -->
 <div class="modal-overlay" id="userInfoModal">
     <div class="modal-container">
         <button class="modal-close" aria-label="Закрыть">
@@ -205,10 +201,10 @@
                 </div>
                 
                 <div class="user-info-details">
-                    <p class="user-fullname" id="modalFullname">Земляницкий Виктор Владимирович</p>
-                    <p class="user-birthdate" id="modalBirthdate">20.01.2001</p>
-                    <p class="user-phone" id="modalPhone">+7 (999) 123-54-67</p>
-                    <p class="user-email" id="modalEmail">victory@ya.ru</p>
+                    <p class="user-fullname" id="modalFullname">Пользователь</p>
+                    <p class="user-birthdate" id="modalBirthdate">*******</p>
+                    <p class="user-phone" id="modalPhone">**********</p>
+                    <p class="user-email" id="modalEmail">*******@ya.ru</p>
                     
                     <div class="user-credentials">
                         <div class="credential-item">
@@ -232,9 +228,9 @@
         </div>
     </div>
 </div>
-
     <script src="/public/js/scr_head.js"></script>
-    <script src="/public/js/scr_menu.js"></script>
     <script src="/public/js/scr_us-acc.js"></script>
+    <script type="module" src="/public/js/profile.js"></script>
+    <script type="module" src="/public/js/consultation.js"></script>
 </body>
 </html>

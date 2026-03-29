@@ -1,11 +1,20 @@
+
 document.addEventListener('DOMContentLoaded', function() {
     const registrationForm = document.getElementById('registrationForm');
     const notification = document.getElementById('successNotification');
     
-    registrationForm.addEventListener('submit', function(e) {
+    // Проверка: если уже авторизован — сразу в личный кабинет
+    const token = localStorage.getItem('carzen_token');
+    if (token) {
+        window.location.href = '/public/html/user-account.html';
+        return;
+    }
+    
+    const API_URL = 'http://localhost:3000/api';
+    
+    registrationForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Получение данных из формы
         const formData = {
             login: document.getElementById('login').value,
             password: document.getElementById('password').value,
@@ -18,44 +27,51 @@ document.addEventListener('DOMContentLoaded', function() {
             birthDate: document.getElementById('birthDate').value
         };
         
-        // Проверка совпадения паролей
+        // Проверка паролей
         if (formData.password !== formData.passwordConfirm) {
             alert('Пароли не совпадают!');
             return;
         }
         
-        // Расчет возраста
-        const birthDate = new Date(formData.birthDate);
-        const ageDifMs = Date.now() - birthDate.getTime();
-        const ageDate = new Date(ageDifMs);
-        const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+        // Проверка длины пароля
+        if (formData.password.length < 6) {
+            alert('Пароль должен содержать минимум 6 символов');
+            return;
+        }
         
-        // Сохранение данных пользователя в localStorage
-        const userData = {
-            fullName: `${formData.lastName} ${formData.firstName} ${formData.middleName}`.trim(),
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            middleName: formData.middleName,
-            age: age,
-            email: formData.email,
-            phone: formData.phone,
-            isLoggedIn: true
-        };
-        
-        localStorage.setItem('carzen_user', JSON.stringify(userData));
-        
-        // Показ уведомления
-        notification.classList.add('show');
-        
-        // Скрытие уведомления через 2 секунды и переход
-        setTimeout(() => {
-            notification.classList.remove('show');
+        try {
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
             
-            // Переход в личный кабинет
-            window.location.href = '/public/html/user-account.html';
-        }, 2000);
-        
-        // Очистка формы
-        registrationForm.reset();
+            const result = await response.json();
+            
+            if (response.ok) {
+                if (notification) {
+                    notification.classList.add('show');
+                }
+    
+    localStorage.setItem('carzen_token', result.token);
+    localStorage.setItem('carzen_user', JSON.stringify(result.user));
+    
+    // Личный кабинет
+    setTimeout(() => {
+        if (notification) notification.classList.remove('show');
+        window.location.href = '/public/html/user-account.html';
+    }, 1500);
+
+
+                
+                registrationForm.reset();
+            } else {
+                alert(result.error || 'Ошибка регистрации');
+            }
+            
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Не удалось подключиться к серверу. Убедитесь, что сервер запущен на порту 3000.');
+        }
     });
 });
