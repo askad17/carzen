@@ -323,6 +323,156 @@ app.get('/api/admin/consultations', (req, res) => {
   }
 });
 
+
+// === АДМИН: ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ ===
+app.post('/api/admin/users', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
+  }
+
+  const {
+    login,
+    password,
+    firstName,
+    lastName,
+    middleName,
+    phone,
+    email,
+    birthDate,
+    role = 'user'
+  } = req.body;
+
+  // Проверка обязательных полей
+  if (!login || !password || !firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'Заполните обязательные поля' });
+  }
+
+  // Проверка длины пароля
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' });
+  }
+
+  const createdAt = new Date().toISOString();
+  const passwordHash = bcrypt.hashSync(password, 10);
+
+  const stmt = db.prepare(`
+    INSERT INTO users 
+    (login, passwordHash, firstName, lastName, middleName, phone, email, birthDate, role, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    login,
+    passwordHash,
+    firstName,
+    lastName,
+    middleName || null,
+    phone || null,
+    email || null,
+    birthDate || null,
+    role,
+    createdAt,
+    function(err) {
+      if (err) {
+        if (err.message?.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'Пользователь с таким логином уже существует' });
+        }
+        console.error('DB error on create user:', err);
+        return res.status(500).json({ error: 'Ошибка сервера' });
+      }
+
+      const newUser = {
+        id: this.lastID,
+        login,
+        firstName,
+        lastName,
+        middleName: middleName || null,
+        phone: phone || null,
+        email: email || null,
+        birthDate: birthDate || null,
+        role,
+        createdAt
+      };
+
+      res.status(201).json({ 
+        message: 'Пользователь создан', 
+        user: mapUserRow(newUser) 
+      });
+    }
+  );
+});
+
+// === АДМИН: УДАЛИТЬ ПОЛЬЗОВАТЕЛЯ ===
+app.delete('/api/admin/users/:id', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
+  }
+
+  const userId = parseInt(req.params.id);
+  
+  // Защита от удаления самого себя
+  if (userId === req.userId) {
+    return res.status(400).json({ error: 'Нельзя удалить самого себя' });
+  }
+
+  db.run('DELETE FROM users WHERE id = ?', [userId], function(err) {
+    if (err) {
+      console.error('DB error on delete user:', err);
+      return res.status(500).json({ error: 'Ошибка сервера' });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json({ message: 'Пользователь удалён' });
+  });
+});
+
+// === АДМИН: ОБНОВИТЬ ПОЛЬЗОВАТЕЛЯ (опционально) ===
+app.put('/api/admin/users/:id', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
+  }
+
+  const userId = parseInt(req.params.id);
+  const {
+    firstName,
+    lastName,
+    middleName,
+    phone,
+    email,
+    birthDate,
+    role
+  } = req.body;
+
+  const updates = [];
+  const params = [];
+
+  if (firstName !== undefined) { updates.push('firstName = ?'); params.push(firstName); }
+  if (lastName !== undefined) { updates.push('lastName = ?'); params.push(lastName); }
+  if (middleName !== undefined) { updates.push('middleName = ?'); params.push(middleName); }
+  if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
+  if (email !== undefined) { updates.push('email = ?'); params.push(email); }
+  if (birthDate !== undefined) { updates.push('birthDate = ?'); params.push(birthDate); }
+  if (role !== undefined) { updates.push('role = ?'); params.push(role); }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'Нет данных для обновления' });
+  }
+
+  params.push(userId);
+
+  db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params, function(err) {
+    if (err) {
+      console.error('DB error on update user:', err);
+      return res.status(500).json({ error: 'Ошибка сервера' });
+    }
+
+    res.json({ message: 'Пользователь обновлён' });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

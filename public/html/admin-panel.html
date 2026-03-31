@@ -226,7 +226,7 @@
                                 </svg>
                                 Добавить автомобиль
                             </button>
-                            <button class="action-btn">
+                            <button class="action-btn" id="addUserBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                     <circle cx="8.5" cy="7" r="4"></circle>
@@ -301,15 +301,11 @@
                     <span class="footer-socials-label">Соцсети:</span>
                     <a href="#" class="footer-social-link">Telegram</a>
                     <span class="footer-divider">|</span>
-                    <a href="#" class="footer-social-link">WhatsApp</a>
-                    <span class="footer-divider">|</span>
                     <a href="#" class="footer-social-link">ВКонтакте</a>
-                    <span class="footer-divider">|</span>
-                    <a href="#" class="footer-social-link">Instagram</a>
                 </div>
                 
                 <div class="footer-copyright">
-                    © 2025 DriveDash. Все права защищены.
+                    © 2026 Carzen. Все права защищены.
                 </div>
                 
                 <div class="footer-legal">
@@ -322,6 +318,86 @@
             </div>
         </div>
     </footer>
+
+    <!-- Modal: Add User -->
+<div class="modal-overlay" id="addUserModal">
+    <div class="modal-container">
+        <button class="modal-close" aria-label="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        
+        <div class="modal-content">
+            <h2 class="modal-title">Добавить пользователя</h2>
+            
+            <form class="add-user-form" id="addUserForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Логин</label>
+                        <input type="text" class="form-input" id="newLogin" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Роль</label>
+                        <select class="form-input" id="newRole">
+                            <option value="user">Пользователь</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" class="form-input" id="newPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Повтор пароля</label>
+                        <input type="password" class="form-input" id="newPasswordConfirm" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Имя</label>
+                        <input type="text" class="form-input" id="newFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Фамилия</label>
+                        <input type="text" class="form-input" id="newLastName" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Отчество</label>
+                    <input type="text" class="form-input" id="newMiddleName">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="newEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Телефон</label>
+                        <input type="tel" class="form-input" id="newPhone">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Дата рождения</label>
+                    <input type="date" class="form-input" id="newBirthDate">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                    <button type="button" class="btn btn-secondary" id="cancelAddUser">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_admin.js"></script>
