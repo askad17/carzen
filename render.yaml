@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: carzen
+    env: node
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: carzen-secret-key-2026-change-this
+      - key: PORT
+        value: 3000
