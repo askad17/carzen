@@ -363,6 +363,68 @@ app.post('/api/reviews', (req, res) => {
   }
 });
 
+app.post('/api/ai-support', async (req, res) => {
+  const userMessage = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+
+  if (!userMessage) {
+    return res.status(400).json({
+      reply: 'Опишите ваш вопрос, и я постараюсь помочь.'
+    });
+  }
+
+  const supportFallback = 'С этим вопросом обратитесь напрямую к оператору по номеру 89123420973.';
+  const aiPrompt = `
+Ты AI-консультант сайта Carzen.
+
+Carzen — сервис аренды автомобилей. На сайте доступны:
+- каталог автомобилей
+- карточки автомобилей
+- бронирование и аренда
+- консультация по подбору авто
+- информация об оплате, условиях аренды и поддержке
+- личный кабинет пользователя
+- отзывы об автомобилях
+
+Отвечай только на вопросы, связанные с сайтом Carzen, его услугами и функционалом.
+Если вопрос частично связан с сайтом, отвечай кратко и по делу.
+Если на вопрос нельзя уверенно ответить по информации сайта, ответь строго:
+${supportFallback}
+
+Вопрос пользователя:
+${userMessage}
+`;
+
+  try {
+    const response = await fetch('http://127.0.0.1:11434/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama3.2',
+        stream: false,
+        prompt: aiPrompt
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = typeof data.response === 'string' ? data.response.trim() : '';
+
+    res.json({
+      reply: reply || supportFallback
+    });
+  } catch (err) {
+    console.error('AI support error:', err);
+    res.status(500).json({
+      reply: `AI-консультант временно недоступен. ${supportFallback}`
+    });
+  }
+});
+
 // админка - список пользователей
 app.get('/api/admin/users', authMiddleware, (req, res) => {
   if (req.userRole !== 'admin') {
@@ -642,6 +704,7 @@ app.put('/api/admin/users/:id', authMiddleware, (req, res) => {
     res.json({ message: 'Пользователь обновлён' });
   });
 });
+
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);

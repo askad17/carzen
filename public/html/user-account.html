@@ -78,7 +78,7 @@
                         </svg>
                         Мои аренды
                     </a>
-                    <a href="#" class="menu-item">
+                    <a href="#" class="menu-item support-trigger">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
@@ -225,6 +225,37 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+
+</div>
+<div class="modal-overlay" id="supportModal">
+    <div class="modal-container support-modal-container">
+        <button class="modal-close support-modal-close" aria-label="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <div class="modal-content">
+            <h2 class="modal-title">AI-поддержка Carzen</h2>
+            <p class="support-subtitle">Задайте вопрос по аренде, бронированию, автомобилям или работе сайта. Если AI не сможет помочь, он направит вас к оператору.</p>
+
+            <div class="support-chat" id="supportChatMessages">
+                <div class="support-message support-message-bot">
+                    Здравствуйте! Я помогу по вопросам сайта Carzen, аренды автомобилей и бронирования.
+                </div>
+            </div>
+
+            <form class="support-form" id="supportForm">
+                <textarea class="support-textarea" id="supportInput" placeholder="Например: как оформить аренду Kia K5?" required></textarea>
+                <div class="support-form-footer">
+                    <p class="support-note">Если вопрос потребует помощи менеджера, мы подскажем номер оператора: 89123420973.</p>
+                    <button type="submit" class="support-submit-btn" id="supportSubmitBtn">Отправить</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
