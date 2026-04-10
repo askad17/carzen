@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    const API_URL = 'http://localhost:3000/api';
+    const API_URL = '/api';
     
     registrationForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Ошибка:', error);
-            alert('Не удалось подключиться к серверу. Убедитесь, что сервер запущен на порту 3000.');
+            alert('Не удалось подключиться к серверу. Убедитесь, что сервер запущен.');
         }
     });
 });

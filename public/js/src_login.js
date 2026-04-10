@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    const API_URL = 'http://localhost:3000/api';
+    const API_URL = '/api';
     
     loginForm.addEventListener('submit', async function(e) {
     e.preventDefault();

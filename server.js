@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const JWT_SECRET = 'very_secret_key_change_me'; 
 
 // CORS и JSON
@@ -42,6 +42,22 @@ db.serialize(() => {
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
     createdAt TEXT NOT NULL
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    carId TEXT NOT NULL,
+    userId INTEGER,
+    authorName TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    createdAt TEXT NOT NULL,
+    publishedAt TEXT,
+    moderatedAt TEXT,
+    moderatorId INTEGER,
+    FOREIGN KEY (userId) REFERENCES users(id),
+    FOREIGN KEY (moderatorId) REFERENCES users(id)
   )`);
 
   // 3. Создаём админа ПОСЛЕ таблиц
@@ -262,6 +278,91 @@ app.post('/api/consultation', (req, res) => {
   );
 });
 
+app.get('/api/cars/:carId/reviews', (req, res) => {
+  const { carId } = req.params;
+
+  db.all(
+    `SELECT id, carId, authorName, rating, text, createdAt, publishedAt
+     FROM reviews
+     WHERE carId = ? AND status = 'published'
+     ORDER BY publishedAt DESC, createdAt DESC`,
+    [carId],
+    (err, rows) => {
+      if (err) {
+        console.error('DB error on get reviews:', err);
+        return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
+      }
+
+      res.json({ reviews: rows });
+    }
+  );
+});
+
+app.post('/api/reviews', (req, res) => {
+  const { carId, authorName, rating, text } = req.body;
+  const normalizedName = typeof authorName === 'string' ? authorName.trim() : '';
+  const normalizedText = typeof text === 'string' ? text.trim() : '';
+  const normalizedRating = Number(rating);
+
+  if (!carId || !normalizedName || !normalizedText || !Number.isInteger(normalizedRating)) {
+    return res.status(400).json({ error: 'Заполните все поля формы отзыва' });
+  }
+
+  if (normalizedName.length < 2 || normalizedName.length > 60) {
+    return res.status(400).json({ error: 'Имя должно содержать от 2 до 60 символов' });
+  }
+
+  if (normalizedText.length < 20 || normalizedText.length > 1000) {
+    return res.status(400).json({ error: 'Текст отзыва должен содержать от 20 до 1000 символов' });
+  }
+
+  if (normalizedRating < 1 || normalizedRating > 5) {
+    return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
+  }
+
+  const createdAt = new Date().toISOString();
+  const authHeader = req.headers['authorization'];
+
+  const insertReview = (userId = null) => {
+    db.run(
+      `INSERT INTO reviews (carId, userId, authorName, rating, text, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [carId, userId, normalizedName, normalizedRating, normalizedText, createdAt],
+      function(err) {
+        if (err) {
+          console.error('DB error on create review:', err);
+          return res.status(500).json({ error: 'Не удалось отправить отзыв' });
+        }
+
+        res.status(201).json({
+          success: true,
+          message: 'Отзыв отправлен на модерацию',
+          reviewId: this.lastID
+        });
+      }
+    );
+  };
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return insertReview();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    db.get('SELECT id FROM users WHERE id = ?', [payload.id], (err, row) => {
+      if (err || !row) {
+        return insertReview();
+      }
+
+      insertReview(row.id);
+    });
+  } catch (e) {
+    insertReview();
+  }
+});
+
 // админка - список пользователей
 app.get('/api/admin/users', authMiddleware, (req, res) => {
   if (req.userRole !== 'admin') {
@@ -321,6 +422,75 @@ app.get('/api/admin/consultations', (req, res) => {
   } catch (e) {
     return res.status(401).json({ error: 'Неверный токен' });
   }
+});
+
+app.get('/api/admin/reviews', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
+  }
+
+  db.all(
+    `SELECT r.id, r.carId, r.authorName, r.rating, r.text, r.status, r.createdAt, r.publishedAt,
+            u.login as userLogin
+     FROM reviews r
+     LEFT JOIN users u ON u.id = r.userId
+     ORDER BY
+       CASE r.status
+         WHEN 'pending' THEN 0
+         WHEN 'published' THEN 1
+         ELSE 2
+       END,
+       r.createdAt DESC`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error('DB error on admin reviews:', err);
+        return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
+      }
+
+      res.json({ reviews: rows });
+    }
+  );
+});
+
+app.patch('/api/admin/reviews/:id', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
+  }
+
+  const reviewId = Number(req.params.id);
+  const { status } = req.body;
+  const allowedStatuses = ['published', 'rejected'];
+
+  if (!Number.isInteger(reviewId)) {
+    return res.status(400).json({ error: 'Некорректный идентификатор отзыва' });
+  }
+
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Некорректный статус модерации' });
+  }
+
+  const moderatedAt = new Date().toISOString();
+  const publishedAt = status === 'published' ? moderatedAt : null;
+
+  db.run(
+    `UPDATE reviews
+     SET status = ?, moderatedAt = ?, publishedAt = ?, moderatorId = ?
+     WHERE id = ?`,
+    [status, moderatedAt, publishedAt, req.userId, reviewId],
+    function(err) {
+      if (err) {
+        console.error('DB error on moderate review:', err);
+        return res.status(500).json({ error: 'Не удалось обновить статус отзыва' });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Отзыв не найден' });
+      }
+
+      res.json({ success: true, message: 'Статус отзыва обновлён' });
+    }
+  );
 });
 
 

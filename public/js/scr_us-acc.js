@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async function() {
-    const API_URL = 'http://localhost:3000/api';
+    const API_URL = '/api';
     
     // Проверка авторизации
     const token = localStorage.getItem('carzen_token');

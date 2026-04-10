@@ -42,7 +42,7 @@
 
     <div class="overlay" id="overlay"></div>
 
-<section class="car-details-section">
+<section class="car-details-section" data-car-id="kia-k5">
     <div class="container">
         <div class="car-header">
             <h1 class="car-main-title">Kia K5</h1>
@@ -162,22 +162,34 @@
     <section class="feedback-section">
     <div class="container">
         <h2 class="feedback-title">Отзывы</h2>
-        <div class="feedback-grid">
-            <div class="feedback-card">
-                <p class="feedback-name">Юлия</p>
-                <div class="feedback-data">14.03.2025</div>
-                <p class="feedback-text">Отличная компания. Удобные и хорошие автомобили. Всем советую!</p>
+        <div class="feedback-grid" id="reviewsList">
+            <div class="feedback-card feedback-card-empty">
+                <p class="feedback-text">Пока опубликованных отзывов нет. Вы можете стать первым, кто поделится впечатлением об автомобиле.</p>
             </div>
-            <div class="feedback-card">
-                <p class="feedback-name">Игорь</p>
-                <div class="feedback-data">12.01.2025</div>
-                <p class="feedback-text">Цены ниже рынка на 20%</p>
+        </div>
+
+        <div class="review-form-block">
+            <div class="review-form-heading">
+                <h3 class="review-form-title">Оставить отзыв</h3>
+                <p class="review-form-subtitle">После отправки отзыв попадёт администратору на модерацию и появится на странице после публикации.</p>
             </div>
-            <div class="feedback-card">
-                <p class="feedback-name">Константин</p>
-                <div class="feedback-data">14.03.2025</div>
-                <p class="feedback-text">Любые классы авто на выбор</p>
-            </div>
+
+            <form class="review-form" id="reviewForm">
+                <div class="review-form-row">
+                    <input type="text" class="form-input" id="reviewAuthorName" placeholder="Ваше имя" maxlength="60" required>
+                    <select class="form-input review-select" id="reviewRating" required>
+                        <option value="">Оценка</option>
+                        <option value="5">5 из 5</option>
+                        <option value="4">4 из 5</option>
+                        <option value="3">3 из 5</option>
+                        <option value="2">2 из 5</option>
+                        <option value="1">1 из 5</option>
+                    </select>
+                </div>
+                <textarea class="review-textarea" id="reviewText" placeholder="Расскажите, что вам понравилось: комфорт, состояние автомобиля, удобство аренды и впечатления от поездки." maxlength="1000" required></textarea>
+                <button type="submit" class="submit-btn review-submit-btn">Отправить отзыв</button>
+                <p class="form-note review-form-note" id="reviewFormNote">Отзывы публикуются после проверки администратором.</p>
+            </form>
         </div>
     </div>
     </section>
@@ -269,10 +281,7 @@
         </div>
     </div>
     </footer>
-    <script src="/public/js/api.js"></script>
-    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
-    <script src="/public/js/scr_menu.js"></script>
     <script src="/public/js/scr_kia-k5.js"></script>
     <script src="/public/js/consultation.js"></script>
 </body>

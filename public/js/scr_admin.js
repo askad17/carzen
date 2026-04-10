@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Загружаем данные
             loadConsultations(token);
             loadUsers(token);
+            loadReviews(token);
             
             // Инициализируем модальное окно
             setupAddUserModal(token);
@@ -103,6 +104,89 @@ async function loadUsers(token) {
             }
         }
     } catch(e) { console.error('Пользователи:', e); }
+}
+
+async function loadReviews(token) {
+    try {
+        const res = await fetch('/api/admin/reviews', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        const tbody = document.getElementById('reviews-tbody');
+
+        if (!tbody) {
+            return;
+        }
+
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="8">${data.error || 'Не удалось загрузить отзывы'}</td></tr>`;
+            return;
+        }
+
+        const reviews = data.reviews || [];
+        if (!reviews.length) {
+            tbody.innerHTML = '<tr><td colspan="8">Отзывов пока нет</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = reviews.map((review) => `
+            <tr>
+                <td>${review.id}</td>
+                <td>${formatCarName(review.carId)}</td>
+                <td>${escapeHtml(review.authorName)}${review.userLogin ? `<br><span class="status">${escapeHtml(review.userLogin)}</span>` : ''}</td>
+                <td>${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</td>
+                <td class="review-text-cell">${escapeHtml(review.text)}</td>
+                <td><span class="status ${review.status}">${formatReviewStatus(review.status)}</span></td>
+                <td>${review.createdAt ? new Date(review.createdAt).toLocaleString('ru-RU') : ''}</td>
+                <td>
+                    ${review.status === 'pending' ? `
+                        <div class="review-actions">
+                            <button class="review-action-btn publish" data-id="${review.id}" data-status="published">Опубликовать</button>
+                            <button class="review-action-btn reject" data-id="${review.id}" data-status="rejected">Отклонить</button>
+                        </div>
+                    ` : '<span class="status">Решение принято</span>'}
+                </td>
+            </tr>
+        `).join('');
+
+        tbody.querySelectorAll('.review-action-btn').forEach((button) => {
+            button.addEventListener('click', () => moderateReview(token, button.dataset.id, button.dataset.status, button));
+        });
+    } catch (error) {
+        console.error('Отзывы:', error);
+    }
+}
+
+async function moderateReview(token, reviewId, status, button) {
+    const actionLabel = status === 'published' ? 'опубликовать' : 'отклонить';
+    if (!confirm(`Вы действительно хотите ${actionLabel} этот отзыв?`)) {
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        const res = await fetch(`/api/admin/reviews/${reviewId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+            throw new Error(result.error || 'Не удалось обновить статус');
+        }
+
+        loadReviews(token);
+    } catch (error) {
+        console.error('Модерация отзыва:', error);
+        alert(error.message || 'Ошибка модерации отзыва');
+        button.disabled = false;
+    }
 }
 
 // === МОДАЛЬНОЕ ОКНО ===
@@ -188,4 +272,33 @@ function setupAddUserModal(token) {
             }
         };
     }
+}
+
+function formatReviewStatus(status) {
+    if (status === 'published') {
+        return 'Опубликован';
+    }
+
+    if (status === 'rejected') {
+        return 'Отклонён';
+    }
+
+    return 'На модерации';
+}
+
+function formatCarName(carId) {
+    const carNames = {
+        'kia-k5': 'Kia K5'
+    };
+
+    return carNames[carId] || carId;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }

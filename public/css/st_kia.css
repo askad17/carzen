@@ -428,6 +428,9 @@
 
 .feedback-name{
     color: white;
+    font-family: Onest, sans-serif;
+    font-size: 18px;
+    font-weight: 500;
 }
 .feedback-data{
     border: 0.2px solid #74E6FF;
@@ -438,6 +441,108 @@
     padding: 5px 10px;
     margin: 10px 0;
 }
+
+.feedback-card-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+}
+
+.feedback-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.feedback-rating {
+    color: #74E6FF;
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.review-form-block {
+    margin-top: 36px;
+    background-color: #0a0a0a;
+    border: 2px solid #181818;
+    border-radius: 16px;
+    padding: 32px;
+}
+
+.review-form-heading {
+    margin-bottom: 24px;
+}
+
+.review-form-title {
+    font-family: Onest, sans-serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.review-form-subtitle {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    color: #999999;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.review-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.review-form-row {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 16px;
+}
+
+.review-select {
+    height: 48px;
+    cursor: pointer;
+}
+
+.review-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 18px 24px;
+    background-color: #242424;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #ffffff;
+    resize: vertical;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.review-textarea::placeholder {
+    color: #747474;
+}
+
+.review-textarea:focus {
+    border-color: #74E6FF;
+    background-color: #2a2a2a;
+}
+
+.review-submit-btn {
+    max-width: 280px;
+}
+
+.review-form-note {
+    text-align: left;
+    margin-top: 0;
+}
+
 @keyframes carFadeIn {
     from {
         opacity: 0;
@@ -498,6 +603,18 @@
     
     .feedback-text {
         font-size: 15px;
+    }
+
+    .review-form-block {
+        padding: 28px 24px;
+    }
+
+    .review-form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .review-submit-btn {
+        max-width: none;
     }
 }
 
@@ -589,6 +706,29 @@
     .feedback-grid {
         grid-template-columns: 1fr;
         gap: 12px;
+    }
+
+    .feedback-meta {
+        align-items: flex-start;
+    }
+
+    .review-form-block {
+        padding: 22px 18px;
+        margin-top: 24px;
+    }
+
+    .review-form-title {
+        font-size: 24px;
+    }
+
+    .review-form-subtitle {
+        font-size: 14px;
+    }
+
+    .review-textarea {
+        min-height: 130px;
+        padding: 16px 18px;
+        font-size: 14px;
     }
     
     .feature-card {

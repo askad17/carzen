@@ -87,9 +87,22 @@ a{
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 100px;
+    justify-items: center;
     z-index: 0;
     position: relative;
     top: -55px;
+}
+.rent-card{
+    width: 100%;
+}
+.rent-grid > a{
+    display: block;
+    width: 100%;
+    max-width: 250px;
+    justify-self: center;
+}
+.rent-grid > a .rent-card{
+    max-width: none;
 }
 .rent-card:nth-child(1){
     background-image: url(/image/bmw_m440-2.png);
@@ -186,6 +199,7 @@ a{
     .rent-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
+        justify-items: center;
     }
 
     .rent-title{
@@ -217,6 +231,7 @@ a{
     .rent-grid {
         grid-template-columns: 1fr;
         gap: 12px;
+        justify-items: center;
     }
     .rent-title{
         font-size: 64px;

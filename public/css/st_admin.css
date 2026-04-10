@@ -719,3 +719,61 @@
     color: #F44336;
     border: 1px solid rgba(244, 67, 54, 0.3);
 }
+
+.review-text-cell {
+    min-width: 260px;
+    max-width: 360px;
+    line-height: 1.5;
+}
+
+.review-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.review-action-btn {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: transparent;
+    font-family: Onest, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.review-action-btn.publish {
+    color: #74E6FF;
+    border-color: rgba(116, 230, 255, 0.35);
+}
+
+.review-action-btn.publish:hover {
+    background-color: rgba(116, 230, 255, 0.12);
+}
+
+.review-action-btn.reject {
+    color: #ff6b6b;
+    border-color: rgba(255, 107, 107, 0.35);
+}
+
+.review-action-btn.reject:hover {
+    background-color: rgba(255, 107, 107, 0.12);
+}
+
+.review-action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.status.rejected {
+    background-color: rgba(244, 67, 54, 0.15);
+    color: #F44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.status.published {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
