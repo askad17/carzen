@@ -242,7 +242,7 @@
                     <div class="admin-block">
                         <h2 class="block-title">Быстрые действия</h2>
                         <div class="quick-actions">
-                            <button class="action-btn">
+                            <button class="action-btn" id="addCarBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -420,6 +420,37 @@
             </form>
         </div>
     </div>
+</div>
+
+<!-- Modal: Add Car -->
+<div class="modal-overlay" id="addCarModal" style="display:none;">
+  <div class="modal-container">
+    <button class="modal-close" id="closeAddCar">&times;</button>
+    <h2>Добавить автомобиль</h2>
+    <form id="addCarForm" enctype="multipart/form-data">
+      <input type="text" name="title" placeholder="Название *" required>
+      <input type="text" name="brand" placeholder="Марка *" required>
+      <input type="text" name="model" placeholder="Модель *" required>
+      <input type="number" name="year" placeholder="Год">
+      <input type="number" name="pricePerDay" placeholder="Цена в день (₽) *" required>
+      <input type="text" name="city" placeholder="Город">
+      <select name="fuelType">
+        <option value="">Тип топлива</option>
+        <option value="Бензин">Бензин</option>
+        <option value="Дизель">Дизель</option>
+        <option value="Электро">Электро</option>
+      </select>
+      <select name="transmission">
+        <option value="">Коробка</option>
+        <option value="АКПП">АКПП</option>
+        <option value="МКПП">МКПП</option>
+      </select>
+      <textarea name="description" placeholder="Описание"></textarea>
+      <label>Фото: <input type="file" name="image" accept="image/*" required></label>
+      <button type="submit" class="btn btn-primary">Добавить</button>
+      <button type="button" class="btn btn-secondary" id="cancelAddCar">Отмена</button>
+    </form>
+  </div>
 </div>
 
     <script src="/public/js/scr_head.js"></script>

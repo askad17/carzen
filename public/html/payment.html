@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата бронирования - Carzen</title>
+    <link rel="stylesheet" href="/public/css/st_head_foot_formrent.css">
+    <style>
+        body { background:#000; color:#fff; font-family:Onest,sans-serif; }
+        .payment-wrap { max-width:760px; margin:120px auto; padding:24px; }
+        .payment-card { background:#0a0a0a; border:1px solid #2f2f2f; border-radius:18px; padding:32px; }
+        .payment-grid { display:grid; gap:12px; margin:24px 0; color:#bbb; }
+        .payment-btn { background:#74E6FF; color:#000; border:none; border-radius:10px; padding:14px 24px; cursor:pointer; font-weight:700; }
+    </style>
+</head>
+<body>
+    <div class="payment-wrap">
+        <div class="payment-card">
+            <h1>Оплата бронирования</h1>
+            <div id="paymentInfo" class="payment-grid">Загрузка данных...</div>
+            <button id="payButton" class="payment-btn">Оплатить</button>
+            <p id="paymentNote" style="margin-top:16px;color:#999;"></p>
+        </div>
+    </div>
+    <script src="/public/js/scr_payment.js"></script>
+</body>
+</html>

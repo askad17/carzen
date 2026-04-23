@@ -777,3 +777,212 @@
     color: #4CAF50;
     border: 1px solid rgba(76, 175, 80, 0.3);
 }
+
+#addCarModal {
+  display: none; /* скрыто по умолчанию */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5); /* затемнение фона */
+  z-index: 9999; /* поверх всего */
+  justify-content: center;
+  align-items: center;
+}
+
+#addCarModal .modal-container,
+#addCarModal .modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+#addCarModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+#addCarModal .modal-container {
+  background: #0a0a0a;
+  border: 2px solid #2F2F2F;
+  padding: 40px;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+#addCarModal .modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #747474;
+  font-size: 32px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+#addCarModal .modal-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+#addCarModal h2 {
+  color: #ffffff;
+  font-family: Onest, sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  margin: 0 0 35px 0;
+  padding-right: 40px;
+}
+
+#addCarForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+#addCarForm input[type="text"],
+#addCarForm input[type="number"],
+#addCarForm select,
+#addCarForm textarea {
+  width: 100%;
+  padding: 10px 16px;
+  background: #161616;
+  border: 2px solid #2F2F2F;
+  border-radius: 8px;
+  font-family: Onest, sans-serif;
+  font-size: 15px;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.3s;
+  box-sizing: border-box;
+}
+
+#addCarForm input:focus,
+#addCarForm select:focus,
+#addCarForm textarea:focus {
+  border-color: #74E6FF;
+  background: #1a1a1a;
+}
+
+#addCarForm input::placeholder {
+  color: #747474;
+}
+
+#addCarForm textarea {
+  grid-column: 1 / -1;
+  min-height: 100px;
+  resize: vertical;
+}
+
+#addCarForm label {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 20px;
+  background: #161616;
+  border: 2px dashed #2F2F2F;
+  border-radius: 8px;
+  color: #999999;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+#addCarForm label:hover {
+  border-color: #74E6FF;
+  background: rgba(116, 230, 255, 0.05);
+}
+
+#addCarForm input[type="file"] {
+  display: none;
+}
+
+#addCarForm button[type="submit"],
+#addCarForm .btn-primary {
+  grid-column: 1 / -1;
+  padding: 12px 20px;
+  background: #74E6FF;
+  border: 2px solid #74E6FF;
+  border-radius: 8px;
+  color: #000000;
+  font-family: Onest, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+}
+
+#addCarForm button[type="submit"]:hover,
+#addCarForm .btn-primary:hover {
+  background: #4DD4FF;
+  border-color: #4DD4FF;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(116, 230, 255, 0.3);
+}
+
+#addCarForm button[type="button"],
+#addCarForm .btn-secondary {
+  grid-column: 1 / -1;
+  padding: 12px 20px;
+  background: transparent;
+  border: 2px solid #2F2F2F;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: Onest, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+#addCarForm button[type="button"]:hover,
+#addCarForm .btn-secondary:hover {
+  border-color: #74E6FF;
+  color: #74E6FF;
+  background: rgba(116, 230, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  #addCarForm {
+    grid-template-columns: 1fr;
+  }
+  
+  #addCarModal .modal-container {
+    padding: 30px 25px;
+  }
+  
+  #addCarModal h2 {
+    font-size: 24px;
+    padding-right: 0;
+  }
+}

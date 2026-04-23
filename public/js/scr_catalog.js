@@ -217,6 +217,31 @@ class FiltersModal {
     }
 }
 
+async function loadCars(filters = {}) {
+  const params = new URLSearchParams(filters);
+  const res = await fetch(`/api/cars?${params}`);
+  const data = await res.json();
+  
+  const grid = document.getElementById('catalog-grid'); // замените на ваш селектор
+  if (!grid) return;
+  
+  if (!data.cars?.length) {
+    grid.innerHTML = '<p>Автомобили не найдены</p>';
+    return;
+  }
+  
+  grid.innerHTML = data.cars.map(car => `
+    <div class="car-card">
+      <img src="${car.imageUrl}" alt="${car.title}">
+      <h3>${car.brand} ${car.model}</h3>
+      <p class="price">${car.pricePerDay} ₽/день</p>
+      <p>${car.city || ''} • ${car.fuelType || ''} • ${car.transmission || ''}</p>
+      <a href="/public/html/kia-card.html?id=${car.id}" class="btn">Подробнее</a>
+    </div>
+  `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => loadCars());
 // Инициализация
 document.addEventListener('DOMContentLoaded', function() {
     window.filtersModal = new FiltersModal();

@@ -4,6 +4,8 @@ const sqlite3 = require('sqlite3').verbose();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -59,6 +61,28 @@ db.serialize(() => {
     FOREIGN KEY (userId) REFERENCES users(id),
     FOREIGN KEY (moderatorId) REFERENCES users(id)
   )`);
+
+ db.run(`DROP TABLE IF EXISTS cars`);
+db.run(`CREATE TABLE cars (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  brand TEXT NOT NULL,
+  model TEXT NOT NULL,
+  year INTEGER,
+  pricePerDay INTEGER NOT NULL,
+  mileage INTEGER,
+  fuelType TEXT,
+  transmission TEXT,
+  driveType TEXT,
+  seats INTEGER,
+  bodyType TEXT,
+  city TEXT,
+  description TEXT,
+  features TEXT,
+  imageUrl TEXT,
+  status TEXT DEFAULT 'available',
+  createdAt TEXT NOT NULL
+)`);
 
   // 3. Создаём админа ПОСЛЕ таблиц
   setTimeout(() => {
@@ -706,6 +730,114 @@ app.put('/api/admin/users/:id', authMiddleware, (req, res) => {
 });
 
 
+// Настройка хранилища для изображений
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'image');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'car-' + unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Только изображения!'));
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
+
+// === API: Получить все автомобили для каталога ===
+app.get('/api/cars', (req, res) => {
+  const { brand, city, maxPrice, minPrice } = req.query;
+  let query = `SELECT * FROM cars WHERE status = 'available'`;
+  const params = [];
+  
+  if (brand) { query += ` AND brand = ?`; params.push(brand); }
+  if (city) { query += ` AND city = ?`; params.push(city); }
+  if (minPrice) { query += ` AND pricePerDay >= ?`; params.push(minPrice); }
+  if (maxPrice) { query += ` AND pricePerDay <= ?`; params.push(maxPrice); }
+  
+  query += ` ORDER BY createdAt DESC`;
+  
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Ошибка БД' });
+    res.json({ cars: rows });
+  });
+});
+
+// === API: Получить один автомобиль ===
+app.get('/api/cars/:id', (req, res) => {
+  db.get('SELECT * FROM cars WHERE id = ?', [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Ошибка БД' });
+    if (!row) return res.status(404).json({ error: 'Авто не найдено' });
+    res.json({ car: row });
+  });
+});
+
+// === API: Админ - добавить автомобиль ===
+app.post('/api/admin/cars', authMiddleware, upload.single('image'), (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Только для администраторов' });
+  }
+
+  const {
+    title, brand, model, year, pricePerDay, mileage, fuelType,
+    transmission, driveType, seats, bodyType, city, description, features
+  } = req.body;
+
+  if (!title || !brand || !model || !pricePerDay) {
+    return res.status(400).json({ error: 'Заполните обязательные поля' });
+  }
+
+  const imageUrl = req.file ? `/image/${req.file.filename}` : '/image/avatar.png';
+  const createdAt = new Date().toISOString();
+
+  db.run(`
+    INSERT INTO cars (title, brand, model, year, pricePerDay, mileage, fuelType,
+      transmission, driveType, seats, bodyType, city, description, features, imageUrl, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    title, brand, model, year || null, pricePerDay, mileage || null, fuelType || null,
+    transmission || null, driveType || null, seats || null, bodyType || null,
+    city || null, description || null, features || null, imageUrl, createdAt
+  ], function(err) {
+    if (err) {
+      console.error('DB error on add car:', err);
+      return res.status(500).json({ error: 'Ошибка при добавлении' });
+    }
+    res.status(201).json({ 
+      message: 'Автомобиль добавлен', 
+      car: { id: this.lastID, title, brand, model, imageUrl } 
+    });
+  });
+});
+
+// === API: Админ - удалить автомобиль ===
+app.delete('/api/admin/cars/:id', authMiddleware, (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ error: 'Только для администраторов' });
+  }
+  
+  db.run('DELETE FROM cars WHERE id = ?', [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: 'Ошибка БД' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Авто не найдено' });
+    
+    // Удаляем файл изображения если он не дефолтный
+    db.get('SELECT imageUrl FROM cars WHERE id = ?', [req.params.id], (err, row) => {
+      if (row?.imageUrl && !row.imageUrl.includes('avatar.png')) {
+        const filePath = path.join(__dirname, row.imageUrl.replace('/image/', 'image/'));
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    });
+    
+    res.json({ message: 'Автомобиль удалён' });
+  });
+});
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });

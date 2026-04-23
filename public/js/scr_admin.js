@@ -21,7 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             console.log('✅ Админ подтверждён');
-            
+            console.log('Элементы:', {
+    btn: document.getElementById('addCarBtn') !== null,
+    modal: document.getElementById('addCarModal') !== null,
+    form: document.getElementById('addCarForm') !== null
+  });
+
+  setupAddCarModal(token);
             // Загружаем данные
             loadConsultations(token);
             loadUsers(token);
@@ -31,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setupAddUserModal(token);
         })
         .catch(err => {
-            console.error('❌ Ошибка:', err);
+            console.error('Ошибка:', err);
             window.location.href = '/public/html/menu.html';
         });
     
@@ -41,6 +47,16 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.clear();
         window.location.href = '/public/html/menu.html';
     });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+  // ... ваш код получения token и userRole ...
+  
+  // ✅ ВЫЗОВ ФУНКЦИИ:
+  if (token && userRole === 'admin') {
+    setupAddCarModal(token);
+    console.log('Admin car modal initialized');
+  }
+});
 });
 
 // === ЗАГРУЗКА ЗАЯВОК ===
@@ -197,17 +213,17 @@ function setupAddUserModal(token) {
     const closeBtn = modal?.querySelector('.modal-close');
     const cancelBtn = document.getElementById('cancelAddUser');
     
-    console.log('🔍 Элементы:', { btn: !!btn, modal: !!modal, form: !!form });
+    console.log('Элементы:', { btn: !!btn, modal: !!modal, form: !!form });
     
     if (!btn || !modal) {
-        console.error('❌ Не найдены кнопка или модальное окно!');
+        console.error('Не найдены кнопка или модальное окно!');
         return;
     }
     
     // Открытие
     btn.onclick = (e) => {
         e.preventDefault();
-        console.log('🎯 Кнопка нажата!');
+        console.log('Кнопка нажата!');
         modal.classList.add('active');
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -301,4 +317,93 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// === МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ АВТО ===
+function setupAddCarModal(token) {
+  const btn = document.getElementById('addCarBtn');
+  const modal = document.getElementById('addCarModal');
+  const form = document.getElementById('addCarForm');
+  
+  // Если элементов нет — выходим
+  if (!btn || !modal) {
+    console.error('Не найдены элементы: btn=', btn, 'modal=', modal);
+    return;
+  }
+  
+  // === ОТКРЫТИЕ МОДАЛКИ ===
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Открываем модалку...');
+    
+    // Простой способ: меняем display
+    modal.style.display = 'flex'; // или 'block', зависит от вашей вёрстки
+    
+    // Если используете классы для анимации — раскомментируйте:
+    // modal.classList.add('active', 'show');
+    
+    document.body.style.overflow = 'hidden'; // блокируем прокрутку
+  });
+  
+  // === ЗАКРЫТИЕ: кнопка × ===
+  const closeBtn = modal.querySelector('.modal-close, .close, [id*="close"]');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+      // modal.classList.remove('active', 'show');
+      document.body.style.overflow = '';
+    });
+  }
+  
+  // === ЗАКРЫТИЕ: клик вне окна ===
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+      // modal.classList.remove('active', 'show');
+      document.body.style.overflow = '';
+    }
+  });
+  
+  // === ЗАКРЫТИЕ: клавиша Escape ===
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display !== 'none') {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  });
+  
+  // === ОТПРАВКА ФОРМЫ ===
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      console.log('Отправка формы...');
+      
+      const formData = new FormData(form);
+      
+      try {
+        const res = await fetch('/api/admin/cars', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert('✅ Автомобиль добавлен!');
+          modal.style.display = 'none';
+          form.reset();
+          // Можно обновить каталог: if (typeof loadCars === 'function') loadCars();
+        } else {
+          alert('❌ ' + (result.error || 'Ошибка при добавлении'));
+        }
+      } catch (err) {
+        console.error('Ошибка:', err);
+        alert('Ошибка соединения с сервером');
+      }
+    });
+  }
+  
+  console.log('✅ setupAddCarModal инициализирован');
 }
