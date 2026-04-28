@@ -1,249 +1,155 @@
-class FiltersModal {
-    constructor() {
-        this.modal = document.getElementById('filtersModal');
-        this.openBtn = document.querySelector('[data-open-filters]');
-        this.closeBtn = document.querySelector('.filters-close');
-        this.resetBtn = document.getElementById('resetFilters');
-        this.form = document.getElementById('filtersForm');
-        this.selectBtns = document.querySelectorAll('.filter-select-btn');
-        this.toggleBtns = document.querySelectorAll('.filter-toggle-btn');
-        this.dropdowns = document.querySelectorAll('.filter-dropdown-content');
-        
-        this.selectedFilters = {};
-        
-        this.init();
-    }
-
-    init() {
-        // Открытие модального окна
-        if (this.openBtn) {
-            this.openBtn.addEventListener('click', () => this.open());
-        }
-
-        // Закрытие
-        if (this.closeBtn) {
-            this.closeBtn.addEventListener('click', () => this.close());
-        }
-
-        // Закрытие по клику вне окна
-        if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-                if (e.target === this.modal) {
-                    this.close();
-                }
-            });
-        }
-
-        // Закрытие по Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal?.classList.contains('active')) {
-                this.close();
-            }
-        });
-
-        // Обработка кнопок выбора (dropdown)
-        this.selectBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleDropdown(btn);
-            });
-        });
-
-        // Обработка опций dropdown
-        document.querySelectorAll('.dropdown-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                this.selectOption(option);
-            });
-        });
-
-        // Закрытие dropdown при клике вне
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.filter-dropdown')) {
-                this.closeAllDropdowns();
-            }
-        });
-
-        // Обработка toggle кнопок
-        this.toggleBtns.forEach(btn => {
-            btn.addEventListener('click', () => this.handleToggle(btn));
-        });
-
-        // Сброс фильтров
-        if (this.resetBtn) {
-            this.resetBtn.addEventListener('click', () => this.reset());
-        }
-
-        // Отправка формы
-        if (this.form) {
-            this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-        }
-    }
-
-    open() {
-        if (this.modal) {
-            this.modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    close() {
-        if (this.modal) {
-            this.modal.classList.remove('active');
-            document.body.style.overflow = '';
-            this.closeAllDropdowns();
-        }
-    }
-
-    toggleDropdown(btn) {
-        const field = btn.dataset.field;
-        const dropdown = document.getElementById(`dropdown-${field}`);
-        const isActive = btn.classList.contains('active');
-        
-        // Закрываем все dropdowns
-        this.closeAllDropdowns();
-        
-        if (!isActive && dropdown) {
-            // Открываем текущий
-            btn.classList.add('active');
-            dropdown.classList.add('active');
-        }
-    }
-
-    closeAllDropdowns() {
-        this.selectBtns.forEach(btn => {
-            btn.classList.remove('active');
-        });
-        this.dropdowns.forEach(dropdown => {
-            dropdown.classList.remove('active');
-        });
-    }
-
-    selectOption(option) {
-        const value = option.dataset.value;
-        const text = option.textContent;
-        const dropdown = option.closest('.filter-dropdown-content');
-        const field = dropdown.id.replace('dropdown-', '');
-        const btn = document.querySelector(`.filter-select-btn[data-field="${field}"]`);
-        
-        if (btn) {
-            const selectText = btn.querySelector('.select-text');
-            if (selectText) {
-                selectText.textContent = text;
-            }
-            
-            // Помечаем выбранную опцию
-            dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            option.classList.add('selected');
-            
-            // Сохраняем выбор
-            this.selectedFilters[field] = { value, text };
-            
-            // Закрываем dropdown
-            btn.classList.remove('active');
-            dropdown.classList.remove('active');
-        }
-    }
-
-    handleToggle(btn) {
-        const field = btn.dataset.field;
-        const value = btn.dataset.value;
-        const text = btn.textContent.trim();
-        const groupBtns = document.querySelectorAll(`.filter-toggle-btn[data-field="${field}"]`);
-        
-        // Снимаем активность со всех кнопок группы
-        groupBtns.forEach(b => b.classList.remove('active'));
-        
-        // Активируем текущую
-        btn.classList.add('active');
-        
-        // Сохраняем выбор
-        this.selectedFilters[field] = { value, text };
-    }
-
-    reset() {
-        // Сброс всех select кнопок
-        this.selectBtns.forEach(btn => {
-            btn.classList.remove('active');
-            const selectText = btn.querySelector('.select-text');
-            if (selectText) {
-                selectText.textContent = 'Выбрать';
-            }
-        });
-
-        // Сброс всех dropdowns
-        this.dropdowns.forEach(dropdown => {
-            dropdown.classList.remove('active');
-            dropdown.querySelectorAll('.dropdown-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-        });
-
-        // Сброс всех toggle кнопок
-        this.toggleBtns.forEach(btn => {
-            btn.classList.remove('active');
-        });
-
-        // Сброс input полей
-        const inputs = this.form.querySelectorAll('.filter-input, .filter-input-date');
-        inputs.forEach(input => {
-            input.value = '';
-        });
-
-        // Очистка выбранных фильтров
-        this.selectedFilters = {};
-    }
-
-    handleSubmit(e) {
-        e.preventDefault();
-        
-        // Собираем данные из input полей
-        const priceFrom = document.getElementById('priceFrom')?.value;
-        const priceTo = document.getElementById('priceTo')?.value;
-        const date = document.getElementById('filterDate')?.value;
-        
-        if (priceFrom) this.selectedFilters.priceFrom = priceFrom;
-        if (priceTo) this.selectedFilters.priceTo = priceTo;
-        if (date) this.selectedFilters.date = date;
-
-        console.log('Отправка фильтров:', this.selectedFilters);
-        
-        // Здесь логика применения фильтров
-        // Например, фильтрация каталога
-        
-        alert('Фильтры применены! (см. консоль)');
-        this.close();
-    }
-}
-
-async function loadCars(filters = {}) {
-  const params = new URLSearchParams(filters);
-  const res = await fetch(`/api/cars?${params}`);
-  const data = await res.json();
-  
-  const grid = document.getElementById('catalog-grid'); // замените на ваш селектор
-  if (!grid) return;
-  
-  if (!data.cars?.length) {
-    grid.innerHTML = '<p>Автомобили не найдены</p>';
-    return;
+class CatalogPage {
+  constructor() {
+    this.modal = document.getElementById('filtersModal');
+    this.form = document.getElementById('filtersForm');
+    this.grid = document.getElementById('catalogGrid');
+    this.summary = document.getElementById('catalogSummary');
+    this.urlParams = new URLSearchParams(window.location.search);
+    this.filters = this.readFiltersFromUrl();
   }
-  
-  grid.innerHTML = data.cars.map(car => `
-    <div class="car-card">
-      <img src="${car.imageUrl}" alt="${car.title}">
-      <h3>${car.brand} ${car.model}</h3>
-      <p class="price">${car.pricePerDay} ₽/день</p>
-      <p>${car.city || ''} • ${car.fuelType || ''} • ${car.transmission || ''}</p>
-      <a href="/public/html/kia-card.html?id=${car.id}" class="btn">Подробнее</a>
-    </div>
-  `).join('');
+
+  init() {
+    document.querySelector('[data-open-filters]')?.addEventListener('click', () => this.openModal());
+    document.querySelector('.filters-close')?.addEventListener('click', () => this.closeModal());
+    document.getElementById('resetFilters')?.addEventListener('click', () => this.resetFilters());
+    document.getElementById('catalogResetBtn')?.addEventListener('click', () => this.resetFilters());
+    this.modal?.addEventListener('click', (event) => {
+      if (event.target === this.modal) this.closeModal();
+    });
+    this.form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.filters = this.readFiltersFromForm();
+      this.writeFiltersToUrl();
+      this.loadCars();
+      this.closeModal();
+    });
+    this.fillForm();
+    this.loadCars();
+  }
+
+  openModal() {
+    this.modal?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeModal() {
+    this.modal?.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  readFiltersFromUrl() {
+    return {
+      city: this.urlParams.get('city') || '',
+      brand: this.urlParams.get('brand') || '',
+      startDate: this.urlParams.get('startDate') || '',
+      endDate: this.urlParams.get('endDate') || '',
+      minPrice: this.urlParams.get('minPrice') || '',
+      maxPrice: this.urlParams.get('maxPrice') || '',
+      fuelType: this.urlParams.get('fuelType') || '',
+      transmission: this.urlParams.get('transmission') || '',
+      driveType: this.urlParams.get('driveType') || '',
+      bodyType: this.urlParams.get('bodyType') || '',
+      seats: this.urlParams.get('seats') || ''
+    };
+  }
+
+  readFiltersFromForm() {
+    return {
+      city: document.getElementById('filterCity')?.value.trim() || '',
+      brand: document.getElementById('filterBrand')?.value.trim() || '',
+      startDate: document.getElementById('filterStartDate')?.value || '',
+      endDate: document.getElementById('filterEndDate')?.value || '',
+      minPrice: document.getElementById('priceFrom')?.value || '',
+      maxPrice: document.getElementById('priceTo')?.value || '',
+      fuelType: document.getElementById('filterFuel')?.value.trim() || '',
+      transmission: document.getElementById('filterTransmission')?.value.trim() || '',
+      driveType: document.getElementById('filterDriveType')?.value.trim() || '',
+      bodyType: document.getElementById('filterBodyType')?.value.trim() || '',
+      seats: document.getElementById('filterSeats')?.value || ''
+    };
+  }
+
+  fillForm() {
+    document.getElementById('filterCity').value = this.filters.city;
+    document.getElementById('filterBrand').value = this.filters.brand;
+    document.getElementById('filterStartDate').value = this.filters.startDate;
+    document.getElementById('filterEndDate').value = this.filters.endDate;
+    document.getElementById('priceFrom').value = this.filters.minPrice;
+    document.getElementById('priceTo').value = this.filters.maxPrice;
+    document.getElementById('filterFuel').value = this.filters.fuelType;
+    document.getElementById('filterTransmission').value = this.filters.transmission;
+    document.getElementById('filterDriveType').value = this.filters.driveType;
+    document.getElementById('filterBodyType').value = this.filters.bodyType;
+    document.getElementById('filterSeats').value = this.filters.seats;
+  }
+
+  writeFiltersToUrl() {
+    const params = new URLSearchParams();
+    Object.entries(this.filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+  }
+
+  resetFilters() {
+    this.filters = {
+      city: '',
+      brand: '',
+      startDate: '',
+      endDate: '',
+      minPrice: '',
+      maxPrice: '',
+      fuelType: '',
+      transmission: '',
+      driveType: '',
+      bodyType: '',
+      seats: ''
+    };
+    this.fillForm();
+    this.writeFiltersToUrl();
+    this.loadCars();
+  }
+
+  renderCard(car) {
+    const image = Array.isArray(car.gallery) && car.gallery.length ? car.gallery[0] : car.imageUrl;
+    return `
+      <a href="/public/html/kia-card.html?id=${car.id}">
+        <div class="rent-card dynamic-car-card" style="background-image:url('${image}')">
+          <div class="up-block">
+            <p class="card-title">${car.title}</p>
+            <div class="advice">${car.city || 'Carzen'}</div>
+          </div>
+          <div class="down-block">
+            <p class="price">${new Intl.NumberFormat('ru-RU').format(car.pricePerDay)}</p>
+            <p class="mileage">${car.mileage ? `${new Intl.NumberFormat('ru-RU').format(car.mileage)} км пробега` : 'Авто готово к аренде'}</p>
+            <div class="down-left">
+              <div class="people">${car.seats || 5}</div>
+              <div class="box">${car.transmission || 'АКПП'}</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    `;
+  }
+
+  async loadCars() {
+    try {
+      const params = new URLSearchParams();
+      Object.entries(this.filters).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+      const response = await fetch(`/api/cars?${params.toString()}`);
+      const data = await response.json();
+      const cars = data.cars || [];
+      this.summary.textContent = cars.length ? `Найдено автомобилей: ${cars.length}` : 'Автомобили по выбранным фильтрам не найдены';
+      this.grid.innerHTML = cars.map((car) => this.renderCard(car)).join('') || '<p class="feedback-text">Попробуйте изменить фильтры.</p>';
+    } catch (error) {
+      console.error('Catalog load error:', error);
+      this.grid.innerHTML = '<p class="feedback-text">Не удалось загрузить каталог.</p>';
+    }
+  }
 }
 
-document.addEventListener('DOMContentLoaded', () => loadCars());
-// Инициализация
-document.addEventListener('DOMContentLoaded', function() {
-    window.filtersModal = new FiltersModal();
+document.addEventListener('DOMContentLoaded', () => {
+  new CatalogPage().init();
 });
-

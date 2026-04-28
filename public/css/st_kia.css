@@ -542,6 +542,118 @@
     text-align: left;
     margin-top: 0;
 }
+.booking-section{
+    margin-top: 40px;
+    background-color: #0a0a0a;
+    border: 2px solid #181818;
+    border-radius: 16px;
+    padding: 32px;
+}
+.booking-intro{
+    color:#999;
+    font-family: Onest, sans-serif;
+    margin-bottom: 24px;
+}
+.booking-notice{
+    margin-bottom: 18px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-family: Onest, sans-serif;
+    display:none;
+}
+.booking-notice.success,
+.booking-notice.error,
+.booking-notice.info{
+    display:block;
+}
+.booking-notice.success{
+    background: rgba(116, 230, 255, 0.12);
+    color:#74E6FF;
+}
+.booking-notice.error{
+    background: rgba(255, 107, 107, 0.12);
+    color:#ff6b6b;
+}
+.booking-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.booking-field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.booking-input{
+    min-height: 56px;
+    padding: 14px 18px;
+}
+.promo-inline{
+    display:flex;
+    gap:12px;
+    align-items:center;
+}
+.promo-apply-btn{
+    max-width: 180px;
+    min-width: 180px;
+}
+.booking-meta{
+    color:#999;
+    margin:8px 0 0;
+    font-family: Onest, sans-serif;
+}
+.booking-options-block{
+    margin-top: 24px;
+}
+.booking-options{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+.booking-option-card{
+    border:2px solid #2F2F2F;
+    border-radius: 14px;
+    padding: 16px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    color:#fff;
+    font-family: Onest, sans-serif;
+    background:#141414;
+}
+.booking-option-input{
+    accent-color:#74E6FF;
+}
+.booking-summary{
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:12px;
+    margin-top:24px;
+}
+.booking-summary-card{
+    border:2px solid #2F2F2F;
+    border-radius:12px;
+    padding:16px;
+    background:#141414;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    font-family: Onest, sans-serif;
+}
+.booking-summary-card span{
+    color:#999;
+    font-size:13px;
+}
+.booking-actions{
+    display:flex;
+    gap:16px;
+    margin-top:24px;
+}
+.booking-submit-btn{
+    max-width:none;
+}
 
 @keyframes carFadeIn {
     from {
@@ -615,6 +727,15 @@
 
     .review-submit-btn {
         max-width: none;
+    }
+    .booking-grid,
+    .booking-options,
+    .booking-summary{
+        grid-template-columns: 1fr;
+    }
+    .promo-inline,
+    .booking-actions{
+        flex-direction:column;
     }
 }
 

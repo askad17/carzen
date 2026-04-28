@@ -4,8 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Проверка: если уже авторизован — сразу в личный кабинет
     const token = localStorage.getItem('carzen_token');
+    const savedUser = JSON.parse(localStorage.getItem('carzen_user') || 'null');
     if (token) {
-        window.location.href = '/public/html/user-account.html';
+        window.location.href = savedUser?.role === 'admin'
+            ? '/public/html/admin-panel.html'
+            : '/public/html/user-account.html';
         return;
     }
     

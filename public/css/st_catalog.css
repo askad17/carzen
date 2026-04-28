@@ -154,6 +154,36 @@ a{
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(116, 230, 255, 0.1);
 }
+.dynamic-car-card{
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    min-height: 320px;
+    max-width: 250px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+}
+.dynamic-car-card::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.72) 100%);
+}
+.dynamic-car-card .up-block,
+.dynamic-car-card .down-block{
+    position:relative;
+    z-index:1;
+}
+.catalog-summary{
+    color:#999;
+    font-family: Onest, sans-serif;
+    margin-bottom: 24px;
+}
 .up-block{
     display: flex;
     flex-direction: column;

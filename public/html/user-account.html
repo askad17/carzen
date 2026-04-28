@@ -230,6 +230,39 @@
 
 
 </div>
+<div class="modal-overlay" id="editProfileModal">
+    <div class="modal-container">
+        <button class="modal-close" aria-label="Закрыть">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <div class="modal-content">
+            <h2 class="modal-title">Редактирование профиля</h2>
+
+            <form id="editProfileForm" class="profile-edit-form" enctype="multipart/form-data">
+                <div class="edit-avatar-block">
+                    <img src="/image/avatar.png" alt="Фото профиля" class="avatar-img" id="editAvatarPreview">
+                    <label class="avatar-upload-label" for="editAvatar">Выбрать фото</label>
+                    <input type="file" id="editAvatar" name="avatar" accept="image/*" class="avatar-upload-input">
+                </div>
+
+                <div class="profile-edit-grid">
+                    <input class="form-input profile-edit-input" id="editLastName" name="lastName" placeholder="Фамилия" required>
+                    <input class="form-input profile-edit-input" id="editFirstName" name="firstName" placeholder="Имя" required>
+                    <input class="form-input profile-edit-input" id="editMiddleName" name="middleName" placeholder="Отчество">
+                    <input class="form-input profile-edit-input" id="editPhone" name="phone" placeholder="Телефон">
+                    <input class="form-input profile-edit-input" id="editEmail" name="email" type="email" placeholder="Email" required>
+                    <input class="form-input profile-edit-input" id="editBirthDate" name="birthDate" type="date">
+                </div>
+
+                <button type="submit" class="btn-change">Сохранить</button>
+            </form>
+        </div>
+    </div>
+</div>
 <div class="modal-overlay" id="supportModal">
     <div class="modal-container support-modal-container">
         <button class="modal-close support-modal-close" aria-label="Закрыть">
@@ -261,7 +294,6 @@
 </div>
     <script src="/public/js/scr_head.js"></script>
     <script src="/public/js/scr_us-acc.js"></script>
-    <script type="module" src="/public/js/profile.js"></script>
     <script type="module" src="/public/js/consultation.js"></script>
 </body>
 </html>

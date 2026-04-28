@@ -11,7 +11,7 @@
     <header class="header">
         <div class="container header-container">
             <a href="#" class="logo">
-                <svg class="logo-icon"><!-- Car icon --></svg>
+                <svg class="logo-icon"></svg>
                 <span>Car</span>Zen
             </a>
             <nav class="nav">
@@ -23,19 +23,18 @@
             </nav>
             <div class="header-right">
                 <a href="/public/html/user-account.html">
-            <div class="user-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" 
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" 
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div></a>
-            <div class="burger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
+                    <div class="user-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </a>
+                <div class="burger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         </div>
     </header>
@@ -43,462 +42,154 @@
     <div class="overlay" id="overlay"></div>
 
     <section class="filter-section">
-    <div class="container">
-        <h2 class="filter-title">Выберите автомобиль для себя</h2>
-        <div class="filter-buttons">
-            <button class="btn-filter btn-primary" data-open-filters>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="4" y1="21" x2="4" y2="14"></line>
-                    <line x1="4" y1="10" x2="4" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12" y2="3"></line>
-                    <line x1="20" y1="21" x2="20" y2="16"></line>
-                    <line x1="20" y1="12" x2="20" y2="3"></line>
-                    <line x1="1" y1="14" x2="7" y2="14"></line>
-                    <line x1="9" y1="8" x2="15" y2="8"></line>
-                    <line x1="17" y1="16" x2="23" y2="16"></line>
-                </svg>
-                Фильтры
-            </button>
-            <button class="btn-filter btn-reset">Сбросить</button>
+        <div class="container">
+            <h2 class="filter-title">Выберите автомобиль для себя</h2>
+            <div class="filter-buttons">
+                <button class="btn-filter btn-primary" data-open-filters>Фильтры</button>
+                <button class="btn-filter btn-reset" id="catalogResetBtn">Сбросить</button>
+            </div>
         </div>
-    </div>
     </section>
 
-<div class="filters-modal-overlay" id="filtersModal">
-    <div class="filters-modal">
-        <button class="filters-close" aria-label="Закрыть фильтры">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-        </button>
-
-        <h2 class="filters-title">Фильтры</h2>
-
-        <form class="filters-form" id="filtersForm">
-            <div class="filter-group">
-                <label class="filter-label">Город</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="city">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-city">
-                        <div class="dropdown-option" data-value="orenburg">Оренбург</div>
-                        <div class="dropdown-option" data-value="ekaterinburg">Екатеринбург</div>
-                        <div class="dropdown-option" data-value="kazan">Казань</div>
-                        <div class="dropdown-option" data-value="moscow">Москва</div>
-                        <div class="dropdown-option" data-value="spb">Санкт-Петербург</div>
+    <div class="filters-modal-overlay" id="filtersModal">
+        <div class="filters-modal">
+            <button class="filters-close" aria-label="Закрыть фильтры">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2 class="filters-title">Фильтры</h2>
+            <form class="filters-form" id="filtersForm">
+                <div class="filter-group">
+                    <label class="filter-label">Город</label>
+                    <input type="text" class="filter-input" id="filterCity" placeholder="Например, Казань">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Марка</label>
+                    <input type="text" class="filter-input" id="filterBrand" placeholder="Например, Kia">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Дата начала аренды</label>
+                    <input type="date" class="filter-input-date" id="filterStartDate">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Дата окончания аренды</label>
+                    <input type="date" class="filter-input-date" id="filterEndDate">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Стоимость</label>
+                    <div class="filter-price-inputs">
+                        <input type="number" class="filter-input" id="priceFrom" placeholder="от">
+                        <input type="number" class="filter-input" id="priceTo" placeholder="до">
                     </div>
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Дата</label>
-                <input type="date" class="filter-input-date" id="filterDate">
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Стоимость</label>
-                <div class="filter-price-inputs">
-                    <input type="number" class="filter-input" id="priceFrom" placeholder="от">
-                    <input type="number" class="filter-input" id="priceTo" placeholder="до">
+                <div class="filter-group">
+                    <label class="filter-label">Тип топлива</label>
+                    <input type="text" class="filter-input" id="filterFuel" placeholder="Например, Бензин">
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Марка авто</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="brand">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-brand">
-                        <div class="dropdown-option" data-value="bmw">BMW</div>
-                        <div class="dropdown-option" data-value="mercedes">Mercedes-Benz</div>
-                        <div class="dropdown-option" data-value="audi">Audi</div>
-                        <div class="dropdown-option" data-value="toyota">Toyota</div>
-                        <div class="dropdown-option" data-value="kia">Kia</div>
-                        <div class="dropdown-option" data-value="hyundai">Hyundai</div>
-                        <div class="dropdown-option" data-value="lexus">Lexus</div>
-                    </div>
+                <div class="filter-group">
+                    <label class="filter-label">Коробка передач</label>
+                    <input type="text" class="filter-input" id="filterTransmission" placeholder="Например, АКПП">
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Тип топлива</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="fuel">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-fuel">
-                        <div class="dropdown-option" data-value="petrol">Бензин</div>
-                        <div class="dropdown-option" data-value="diesel">Дизель</div>
-                        <div class="dropdown-option" data-value="electric">Электро</div>
-                        <div class="dropdown-option" data-value="hybrid">Гибрид</div>
-                    </div>
+                <div class="filter-group">
+                    <label class="filter-label">Привод</label>
+                    <input type="text" class="filter-input" id="filterDriveType" placeholder="Например, Передний">
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Привод</label>
-                <div class="filter-buttons-group">
-                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="front">
-                        Передний
-                    </button>
-                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="rear">
-                        Задний
-                    </button>
-                    <button type="button" class="filter-toggle-btn" data-field="drive" data-value="all">
-                        Полный
-                    </button>
+                <div class="filter-group">
+                    <label class="filter-label">Кузов</label>
+                    <input type="text" class="filter-input" id="filterBodyType" placeholder="Например, Седан">
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Страховка</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="insurance">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-insurance">
-                        <div class="dropdown-option" data-value="osago">ОСАГО</div>
-                        <div class="dropdown-option" data-value="kasko">КАСКО</div>
-                        <div class="dropdown-option" data-value="full">Полная</div>
-                    </div>
+                <div class="filter-group">
+                    <label class="filter-label">Количество мест</label>
+                    <input type="number" class="filter-input" id="filterSeats" placeholder="Например, 5">
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Количество мест</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="seats">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-seats">
-                        <div class="dropdown-option" data-value="2">2 места</div>
-                        <div class="dropdown-option" data-value="4">4 места</div>
-                        <div class="dropdown-option" data-value="5">5 мест</div>
-                        <div class="dropdown-option" data-value="7">7 мест</div>
-                        <div class="dropdown-option" data-value="8">8+ мест</div>
-                    </div>
+                <div class="filters-actions">
+                    <button type="submit" class="filters-submit-btn">Найти автомобиль</button>
+                    <button type="button" class="filters-reset-btn" id="resetFilters">Сбросить фильтры</button>
                 </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Коробка передач</label>
-                <div class="filter-buttons-group">
-                    <button type="button" class="filter-toggle-btn" data-field="transmission" data-value="auto">
-                        АКПП
-                    </button>
-                    <button type="button" class="filter-toggle-btn" data-field="transmission" data-value="manual">
-                        МКПП
-                    </button>
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Тип кузова</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="body">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-body">
-                        <div class="dropdown-option" data-value="sedan">Седан</div>
-                        <div class="dropdown-option" data-value="suv">Внедорожник</div>
-                        <div class="dropdown-option" data-value="crossover">Кроссовер</div>
-                        <div class="dropdown-option" data-value="hatchback">Хэтчбек</div>
-                        <div class="dropdown-option" data-value="coupe">Купе</div>
-                        <div class="dropdown-option" data-value="cabrio">Кабриолет</div>
-                        <div class="dropdown-option" data-value="minivan">Минивэн</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Место получения авто</label>
-                <div class="filter-dropdown">
-                    <button type="button" class="filter-select-btn" data-field="pickup">
-                        <span class="select-text">Выбрать</span>
-                        <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="filter-dropdown-content" id="dropdown-pickup">
-                        <div class="dropdown-option" data-value="orenburg-pobeda">Оренбург, ул. Победы, 157Б</div>
-                        <div class="dropdown-option" data-value="ekb-lenina">Екатеринбург, пр. Ленина, 68/1</div>
-                        <div class="dropdown-option" data-value="kazan-baumana">Казань, ул. Баумана, 23А</div>
-                        <div class="dropdown-option" data-value="delivery">Доставка</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="filters-actions">
-                <button type="submit" class="filters-submit-btn">
-                    Найти автомобиль
-                </button>
-                <button type="button" class="filters-reset-btn" id="resetFilters">
-                    Сбросить фильтры
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 
     <section class="rent-section">
         <div class="container">
-            <div class="rent-grid">
-                <div class="rent-card bmwm440">
-                    <div class="up-block">
-                    <p class="card-title">BMW M440 Coupe</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">10 000</p>
-                    <p class="mileage">12 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <div class="rent-card hyundaisolaris">
-                    <div class="up-block">
-                    <p class="card-title">Hyundai Solaris</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">3 500</p>
-                    <p class="mileage">14 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <a href="/public/html/kia-card.html"><div class="rent-card kiak5">
-                    <div class="up-block">
-                    <p class="card-title">Kia K5</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">8 000</p>
-                    <p class="mileage">17 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div></a>
-                <div class="rent-card toyotarav4">
-                    <div class="up-block">
-                    <p class="card-title">Toyota RAV4</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">7 000</p>
-                    <p class="mileage">12 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <div class="rent-card kiario">
-                    <div class="up-block">
-                    <p class="card-title">Kia Rio</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">3 500</p>
-                    <p class="mileage">14 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <div class="rent-card toyotacamry">
-                    <div class="up-block">
-                    <p class="card-title">Toyota Camry</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">8 000</p>
-                    <p class="mileage">17 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-            </div>
+            <div class="catalog-summary" id="catalogSummary"></div>
+            <div class="rent-grid" id="catalogGrid"></div>
         </div>
     </section>
-
 
     <section class="consultation-section">
-    <div class="container">
-        <div class="consultation-wrapper">
-            <div class="consultation-form">
-                <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields" id="consultationForm">
-                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
-                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
-                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
-                    <button type="submit" class="submit-btn">Отправить</button>
-                    <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
-                </form>
-            </div>
-            <div class="consultation-image">
-                <div class="car-dark">
-                    <img src="/image/form_cons.png" alt="Автомобиль">
+        <div class="container">
+            <div class="consultation-wrapper">
+                <div class="consultation-form">
+                    <h2 class="consultation-title">Подобрать авто</h2>
+                    <form class="form-fields" id="consultationForm">
+                        <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                        <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                        <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
+                        <button type="submit" class="submit-btn">Отправить</button>
+                        <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
+                    </form>
+                </div>
+                <div class="consultation-image">
+                    <div class="car-dark">
+                        <img src="/image/form_cons.png" alt="Автомобиль">
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     </section>
 
-
-<footer class="footer">
-    <div class="container footer-container">
-        <div class="footer-content">
-            <div class="footer-logo-section">
-                <a href="#" class="footer-logo">Carzen</a>
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-content">
+                <div class="footer-logo-section">
+                    <a href="#" class="footer-logo">Carzen</a>
+                </div>
+                <div class="footer-columns">
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Навигация</h3>
+                        <ul class="footer-list">
+                            <li><a href="/public/html/menu.html" class="footer-item">Главная</a></li>
+                            <li><a href="/public/html/catalog.html" class="footer-item">Каталог</a></li>
+                            <li><a href="/public/html/about-us.html" class="footer-item">О компании</a></li>
+                            <li><a href="/public/html/contacts.html" class="footer-item">Контакты</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Контакты</h3>
+                        <ul class="footer-list">
+                            <li><a href="tel:+79991234567" class="footer-item" data-content-key="support_phone">+7 (999) 123-45-67</a></li>
+                            <li><a href="mailto:carzen@ya.ru" class="footer-item" data-content-key="support_email">carzen@ya.ru</a></li>
+                            <li class="footer-item">Круглосуточно</li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Адреса</h3>
+                        <ul class="footer-list">
+                            <li class="footer-item" data-content-key="footer_address_1">Оренбург, ул. Победы, 157Б</li>
+                            <li class="footer-item" data-content-key="footer_address_2">Екатеринбург, пр. Ленина, 68/1</li>
+                            <li class="footer-item" data-content-key="footer_address_3">Казань, ул. Баумана, 23А</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            
-            <div class="footer-columns">
-                <div class="footer-column">
-                    <h3 class="footer-heading">Навигация</h3>
-                    <ul class="footer-list">
-                        <li><a href="#" class="footer-item">Главная</a></li>
-                        <li><a href="#" class="footer-item">Каталог</a></li>
-                        <li><a href="#" class="footer-item">О компании</a></li>
-                        <li><a href="#" class="footer-item">Контакты</a></li>
-                    </ul>
+            <div class="footer-bottom">
+                <div class="footer-socials">
+                    <span class="footer-socials-label">Соцсети:</span>
+                    <a href="#" class="footer-social-link">Telegram</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-social-link">WhatsApp</a>
                 </div>
-                
-                <div class="footer-column">
-                    <h3 class="footer-heading">Контакты</h3>
-                    <ul class="footer-list">
-                        <li><a href="tel:+79991234567" class="footer-item">+7 (999) 123-45-67</a></li>
-                        <li><a href="mailto:carzen@ya.ru" class="footer-item">carzen@ya.ru</a></li>
-                        <li class="footer-item">Круглосуточно</li>
-                    </ul>
-                </div>
-                
-                <div class="footer-column">
-                    <h3 class="footer-heading">Адреса</h3>
-                    <ul class="footer-list">
-                        <li class="footer-item">Оренбург, ул. Победы, 157Б</li>
-                        <li class="footer-item">Екатеринбург, пр. Ленина, 68/1</li>
-                        <li class="footer-item">Казань, ул. Баумана, 23А</li>
-                    </ul>
-                </div>
+                <div class="footer-copyright">© 2026 Carzen. Все права защищены.</div>
             </div>
         </div>
-        
-        <div class="footer-bottom">
-            <div class="footer-socials">
-                <span class="footer-socials-label">Соцсети:</span>
-                <a href="#" class="footer-social-link">Telegram</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">WhatsApp</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">ВКонтакте</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">Instagram</a>
-            </div>
-            
-            <div class="footer-copyright">
-                © 2025 DriveDash. Все права защищены.
-            </div>
-            
-            <div class="footer-legal">
-                <a href="#" class="footer-legal-link">Политика конфиденциальности</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-legal-link">Договор оферты</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-legal-link">Возврат средств</a>
-            </div>
-        </div>
-    </div>
     </footer>
+
     <script src="/public/js/api.js"></script>
-    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
-    <script src="/public/js/scr_menu.js"></script>
+    <script src="/public/js/site-content.js"></script>
     <script src="/public/js/consultation.js"></script>
     <script src="/public/js/scr_catalog.js"></script>
 </body>

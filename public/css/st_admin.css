@@ -765,6 +765,35 @@
     opacity: 0.5;
     cursor: default;
 }
+.admin-split-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
+}
+.admin-inline-form{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:12px;
+    margin-bottom:18px;
+}
+.admin-inline-form .form-input{
+    width:100%;
+    padding:10px 16px;
+    background-color:#161616;
+    border:2px solid #2F2F2F;
+    border-radius:8px;
+    color:#fff;
+}
+.admin-inline-form .action-btn{
+    grid-column: 1 / -1;
+}
+.admin-content-form{
+    grid-template-columns: repeat(3, 1fr);
+}
+.admin-textarea{
+    min-height:100px;
+    resize:vertical;
+}
 
 .status.rejected {
     background-color: rgba(244, 67, 54, 0.15);
@@ -984,5 +1013,10 @@
   #addCarModal h2 {
     font-size: 24px;
     padding-right: 0;
+  }
+  .admin-split-grid,
+  .admin-inline-form,
+  .admin-content-form{
+    grid-template-columns: 1fr;
   }
 }

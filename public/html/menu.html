@@ -12,7 +12,7 @@
     <header class="header">
         <div class="container header-container">
             <a href="#" class="logo">
-                <svg class="logo-icon"><!-- Car icon --></svg>
+                <svg class="logo-icon"></svg>
                 <span>Car</span>Zen
             </a>
             <nav class="nav">
@@ -22,22 +22,20 @@
                 <a href="/public/html/stock.html" class="nav-link">Акции</a>
                 <a href="/public/html/contacts.html" class="nav-link">Контакты</a>
             </nav>
-
             <div class="header-right">
                 <a href="/public/html/user-account.html">
-            <div class="user-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" 
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" 
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </div></a>
-            <div class="burger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
+                    <div class="user-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </a>
+                <div class="burger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         </div>
     </header>
@@ -45,304 +43,189 @@
     <div class="overlay" id="overlay"></div>
 
     <section class="hero">
-    <div class="hero-bg"></div>
-
-    <div class="hero-car-bg">
-        <div class="car-image-wrapper">
-            <img src="/image/menu_hero_car.jpeg" alt="Автомобиль для аренды" class="car-bg-image">
-            <div class="car-reflection-bg"></div>
-        </div>
-    </div>
-
-    <div class="hero-overlay"></div>
-    
-    <div class="container hero-container">
-        <div class="hero-content">
-            <h1 class="hero-title">Аренда автомобилей<br>легко</h1>
-            <p class="hero-subtitle">Выберите идеальный автомобиль для ваших задач</p>
-            <div class="hero-buttons">
-                <a href="/public/html/catalog.html" class="btn btn-primary">Выбрать авто</a>
-                <a href="/public/html/about-us.html" class="btn btn-secondary">Условия аренды</a>
+        <div class="hero-bg"></div>
+        <div class="hero-car-bg">
+            <div class="car-image-wrapper">
+                <img src="/image/menu_hero_car.jpeg" alt="Автомобиль для аренды" class="car-bg-image">
+                <div class="car-reflection-bg"></div>
             </div>
         </div>
-    </div>
+        <div class="hero-overlay"></div>
+        <div class="container hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title" data-content-key="hero_title">Аренда автомобилей легко</h1>
+                <p class="hero-subtitle" data-content-key="hero_subtitle">Выберите идеальный автомобиль для ваших задач</p>
+                <div class="hero-buttons">
+                    <a href="/public/html/catalog.html" class="btn btn-primary">Выбрать авто</a>
+                    <a href="/public/html/about-us.html" class="btn btn-secondary">Условия аренды</a>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="search-section">
-    <div class="container">
-        <div class="search-block">
-            <div class="search-fields">
-                <div class="search-field">
-                    <select class="search-select" id="city">
-                        <option value="" disabled selected>Город</option>
-                        <option value="orenburg">Оренбург</option>
-                        <option value="ekaterinburg">Екатеринбург</option>
-                        <option value="kazan">Казань</option>
-                        <option value="moscow">Москва</option>
-                        <option value="spb">Санкт-Петербург</option>
-                    </select>
-                </div>
-                
-                <div class="search-field">
-                    <input type="text" class="search-input search-date" id="dates" placeholder="Даты аренды" readonly>
-                </div>
-                
-                <div class="search-field">
-                    <select class="search-select" id="brand">
-                        <option value="" disabled selected>Марка авто</option>
-                        <option value="toyota">Toyota</option>
-                        <option value="bmw">BMW</option>
-                        <option value="mercedes">Mercedes-Benz</option>
-                        <option value="audi">Audi</option>
-                        <option value="lexus">Lexus</option>
-                        <option value="kia">Kia</option>
-                    </select>
-                </div>
-                
-                <div class="search-field search-button-field">
-                    <button type="button" class="search-btn">Найти автомобиль</button>
+        <div class="container">
+            <div class="search-block">
+                <div class="search-fields">
+                    <div class="search-field">
+                        <select class="search-select" id="city">
+                            <option value="">Город</option>
+                            <option value="Оренбург">Оренбург</option>
+                            <option value="Екатеринбург">Екатеринбург</option>
+                            <option value="Казань">Казань</option>
+                            <option value="Москва">Москва</option>
+                            <option value="Санкт-Петербург">Санкт-Петербург</option>
+                        </select>
+                    </div>
+                    <div class="search-field">
+                        <input type="text" class="search-input search-date" id="dates" placeholder="Даты аренды" readonly>
+                    </div>
+                    <div class="search-field">
+                        <select class="search-select" id="brand">
+                            <option value="">Марка авто</option>
+                            <option value="Toyota">Toyota</option>
+                            <option value="BMW">BMW</option>
+                            <option value="Mercedes-Benz">Mercedes-Benz</option>
+                            <option value="Audi">Audi</option>
+                            <option value="Lexus">Lexus</option>
+                            <option value="Kia">Kia</option>
+                            <option value="Hyundai">Hyundai</option>
+                        </select>
+                    </div>
+                    <div class="search-field search-button-field">
+                        <button type="button" class="search-btn">Найти автомобиль</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="features-section">
-    <div class="container">
-        <h2 class="features-title">Свобода движения начинается здесь</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <p class="feature-text">Мгновенное бронирование</p>
-            </div>
-            <div class="feature-card">
-                <p class="feature-text">Цены ниже рынка на 20%</p>
-            </div>
-            <div class="feature-card">
-                <p class="feature-text">Любые классы авто на выбор</p>
-            </div>
-            <div class="feature-card">
-                <p class="feature-text">Гибкие даты аренды</p>
+    <section class="features-section">
+        <div class="container">
+            <h2 class="features-title">Свобода движения начинается здесь</h2>
+            <div class="features-grid">
+                <div class="feature-card"><p class="feature-text">Мгновенное бронирование</p></div>
+                <div class="feature-card"><p class="feature-text">Цены ниже рынка на 20%</p></div>
+                <div class="feature-card"><p class="feature-text">Любые классы авто на выбор</p></div>
+                <div class="feature-card"><p class="feature-text">Гибкие даты аренды</p></div>
             </div>
         </div>
-    </div>
     </section>
 
     <section class="rent-section">
         <div class="container">
             <h2 class="rent-title">АРЕНДА</h2>
-            <div class="rent-grid">
-                <div class="rent-card bmwm440">
-                    <div class="up-block">
-                    <p class="card-title">BMW M440 Coupe</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">10 000</p>
-                    <p class="mileage">12 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <div class="rent-card hyundaisolaris">
-                    <div class="up-block">
-                    <p class="card-title">Hyundai Solaris</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">3 500</p>
-                    <p class="mileage">14 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-                <a href="/public/html/kia-card.html"><div class="rent-card kiak5">
-                    <div class="up-block">
-                    <p class="card-title">Kia K5</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">8 000</p>
-                    <p class="mileage">17 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div></a>
-                <div class="rent-card toyotarav4">
-                    <div class="up-block">
-                    <p class="card-title">Toyota RAV4</p>
-                    <div class="advice">
-                        Совет дня
-                    </div>
-                </div>
-                <div class="down-block">
-                    <p class="price">7 000</p>
-                    <p class="mileage">12 000 км пробега</p>
-                    <div class="down-left">
-                        <div class="people">
-                            5
-                        </div>
-                        <div class="box">
-                            АКПП
-                        </div>
-                    </div>
-                    <div class="right">
-                        <!--сердечко нравится-->
-                    </div>
-                </div>
-                </div>
-            </div>
+            <div class="rent-grid" id="homeCarsGrid"></div>
         </div>
     </section>
 
     <section class="feedback-section">
-    <div class="container">
-        <h2 class="feedback-title">Отзывы</h2>
-        <div class="feedback-grid">
-            <div class="feedback-card">
-                <p class="feedback-name">Юлия</p>
-                <div class="feedback-data">14.03.2025</div>
-                <p class="feedback-text">Отличная компания. Удобные и хорошие автомобили. Всем советую!</p>
-            </div>
-            <div class="feedback-card">
-                <p class="feedback-name">Игорь</p>
-                <div class="feedback-data">12.01.2025</div>
-                <p class="feedback-text">Цены ниже рынка на 20%</p>
-            </div>
-            <div class="feedback-card">
-                <p class="feedback-name">Константин</p>
-                <div class="feedback-data">14.03.2025</div>
-                <p class="feedback-text">Любые классы авто на выбор</p>
+        <div class="container">
+            <h2 class="feedback-title">Отзывы</h2>
+            <div class="feedback-grid">
+                <div class="feedback-card">
+                    <p class="feedback-name">Юлия</p>
+                    <div class="feedback-data">14.03.2025</div>
+                    <p class="feedback-text">Отличная компания. Удобные и хорошие автомобили. Всем советую!</p>
+                </div>
+                <div class="feedback-card">
+                    <p class="feedback-name">Игорь</p>
+                    <div class="feedback-data">12.01.2025</div>
+                    <p class="feedback-text">Сервис понятный, сотрудники быстро выходят на связь, машины в хорошем состоянии.</p>
+                </div>
+                <div class="feedback-card">
+                    <p class="feedback-name">Константин</p>
+                    <div class="feedback-data">14.03.2025</div>
+                    <p class="feedback-text">Удобно выбирать даты и бронировать. Понравилось, что все прозрачно по цене.</p>
+                </div>
             </div>
         </div>
-    </div>
     </section>
 
     <section class="consultation-section">
-    <div class="container">
-        <div class="consultation-wrapper">
-            <div class="consultation-form">
-                <h2 class="consultation-title">Подобрать авто</h2>
-                <form class="form-fields" id="consultationForm">
-                    <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
-                    <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
-                    <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
-                    <button type="submit" class="submit-btn">Отправить</button>
-                    <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
-                </form>
-            </div>
-            <div class="consultation-image">
-                <div class="car-dark">
-                    <img src="/image/form_cons.png" alt="Автомобиль">
+        <div class="container">
+            <div class="consultation-wrapper">
+                <div class="consultation-form">
+                    <h2 class="consultation-title">Подобрать авто</h2>
+                    <form class="form-fields" id="consultationForm">
+                        <input type="text" class="form-input" id="consultCity" placeholder="Город" required>
+                        <input type="text" class="form-input" id="consultName" placeholder="Имя" required>
+                        <input type="tel" class="form-input" id="consultPhone" placeholder="Номер телефона" required>
+                        <button type="submit" class="submit-btn">Отправить</button>
+                        <p class="form-note">Консультант свяжется с вами в ближайшее время</p>
+                    </form>
+                </div>
+                <div class="consultation-image">
+                    <div class="car-dark">
+                        <img src="/image/form_cons.png" alt="Автомобиль">
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     </section>
 
-
-
-<footer class="footer">
-    <div class="container footer-container">
-        <div class="footer-content">
-            <div class="footer-logo-section">
-                <a href="#" class="footer-logo">Carzen</a>
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-content">
+                <div class="footer-logo-section">
+                    <a href="#" class="footer-logo">Carzen</a>
+                </div>
+                <div class="footer-columns">
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Навигация</h3>
+                        <ul class="footer-list">
+                            <li><a href="/public/html/menu.html" class="footer-item">Главная</a></li>
+                            <li><a href="/public/html/catalog.html" class="footer-item">Каталог</a></li>
+                            <li><a href="/public/html/about-us.html" class="footer-item">О компании</a></li>
+                            <li><a href="/public/html/contacts.html" class="footer-item">Контакты</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Контакты</h3>
+                        <ul class="footer-list">
+                            <li><a href="tel:+79991234567" class="footer-item" data-content-key="support_phone">+7 (999) 123-45-67</a></li>
+                            <li><a href="mailto:carzen@ya.ru" class="footer-item" data-content-key="support_email">carzen@ya.ru</a></li>
+                            <li class="footer-item">Круглосуточно</li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-heading">Адреса</h3>
+                        <ul class="footer-list">
+                            <li class="footer-item" data-content-key="footer_address_1">Оренбург, ул. Победы, 157Б</li>
+                            <li class="footer-item" data-content-key="footer_address_2">Екатеринбург, пр. Ленина, 68/1</li>
+                            <li class="footer-item" data-content-key="footer_address_3">Казань, ул. Баумана, 23А</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            
-            <div class="footer-columns">
-                <div class="footer-column">
-                    <h3 class="footer-heading">Навигация</h3>
-                    <ul class="footer-list">
-                        <li><a href="#" class="footer-item">Главная</a></li>
-                        <li><a href="#" class="footer-item">Каталог</a></li>
-                        <li><a href="#" class="footer-item">О компании</a></li>
-                        <li><a href="#" class="footer-item">Контакты</a></li>
-                    </ul>
+            <div class="footer-bottom">
+                <div class="footer-socials">
+                    <span class="footer-socials-label">Соцсети:</span>
+                    <a href="#" class="footer-social-link">Telegram</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-social-link">WhatsApp</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-social-link">ВКонтакте</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-social-link">Instagram</a>
                 </div>
-                
-                <div class="footer-column">
-                    <h3 class="footer-heading">Контакты</h3>
-                    <ul class="footer-list">
-                        <li><a href="tel:+79991234567" class="footer-item">+7 (999) 123-45-67</a></li>
-                        <li><a href="mailto:carzen@ya.ru" class="footer-item">carzen@ya.ru</a></li>
-                        <li class="footer-item">Круглосуточно</li>
-                    </ul>
-                </div>
-                
-                <div class="footer-column">
-                    <h3 class="footer-heading">Адреса</h3>
-                    <ul class="footer-list">
-                        <li class="footer-item">Оренбург, ул. Победы, 157Б</li>
-                        <li class="footer-item">Екатеринбург, пр. Ленина, 68/1</li>
-                        <li class="footer-item">Казань, ул. Баумана, 23А</li>
-                    </ul>
+                <div class="footer-copyright">© 2026 Carzen. Все права защищены.</div>
+                <div class="footer-legal">
+                    <a href="#" class="footer-legal-link">Политика конфиденциальности</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-legal-link">Договор оферты</a>
+                    <span class="footer-divider">|</span>
+                    <a href="#" class="footer-legal-link">Возврат средств</a>
                 </div>
             </div>
         </div>
-        
-        <div class="footer-bottom">
-            <div class="footer-socials">
-                <span class="footer-socials-label">Соцсети:</span>
-                <a href="#" class="footer-social-link">Telegram</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">WhatsApp</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">ВКонтакте</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-social-link">Instagram</a>
-            </div>
-            
-            <div class="footer-copyright">
-                © 2025 DriveDash. Все права защищены.
-            </div>
-            
-            <div class="footer-legal">
-                <a href="#" class="footer-legal-link">Политика конфиденциальности</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-legal-link">Договор оферты</a>
-                <span class="footer-divider">|</span>
-                <a href="#" class="footer-legal-link">Возврат средств</a>
-            </div>
-        </div>
-    </div>
     </footer>
+
     <script src="/public/js/api.js"></script>
-    <script src="/public/js/registration.js"></script>
     <script src="/public/js/scr_head.js"></script>
-    <script src="/public/js/scr_menu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-        <script type="module" src="/public/js/consultation.js"></script>
+    <script src="/public/js/site-content.js"></script>
+    <script src="/public/js/consultation.js"></script>
+    <script src="/public/js/scr_menu.js"></script>
 </body>
 </html>
