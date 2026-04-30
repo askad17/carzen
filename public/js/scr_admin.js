@@ -1,7 +1,7 @@
 class AdminPanel {
   constructor(token) {
     this.token = token;
-    this.headers = { Authorization: `Носитель ${token}` };
+    this.headers = { Authorization: `Bearer ${token}` };
   }
 
   async init() {

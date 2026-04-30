@@ -14,7 +14,7 @@ async function authMe() {
     throw new Error('Нет токена');
   }
   const response = await fetch('/api/me', {
-    headers: { Authorization: `Носитель ${token}` }
+    headers: { Authorization: `Bearer ${token}` }
   });
   const data = await response.json();
   if (!response.ok) {

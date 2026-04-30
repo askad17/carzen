@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
   flatpickr('#dates', {
     mode: 'range',
     dateFormat: 'd.m.Y',
-    locale: 'ru',
     minDate: 'today',
     showMonths: 2,
     static: true,
