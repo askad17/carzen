@@ -705,6 +705,21 @@
 #addUserModal.active .form-group {
     opacity: 1;
 }
+.assign-promo-btn{
+    background-color: transparent;
+    color: #74E6FF;
+    padding: 5px 10px;
+    border: 1px solid #74E6FF;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-right: 5px;
+}
+.assign-promo-btn:hover{
+    background-color: rgba(116, 230, 255, 0.15);
+    color: #74E6FF;
+    border: 1px solid #74E6FF;
+}
 .delete-user{
     background-color: transparent;
     color: #F44336;
@@ -784,6 +799,17 @@
     border-radius:8px;
     color:#fff;
 }
+.admin-inline-form .form-checkbox {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+}
+.admin-inline-form .form-checkbox input {
+    width: auto;
+    margin: 0;
+}
 .admin-inline-form .action-btn{
     grid-column: 1 / -1;
 }
@@ -843,6 +869,13 @@
   justify-content: center;
   align-items: center;
   padding: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#addCarModal.active {
+  display: flex;
+  opacity: 1;
 }
 
 #addCarModal .modal-container {
@@ -999,6 +1032,132 @@
   border-color: #74E6FF;
   color: #74E6FF;
   background: rgba(116, 230, 255, 0.05);
+}
+
+/* Assign Promo Modal */
+#assignPromoModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  overflow-y: auto;
+}
+
+#assignPromoModal.active {
+  display: flex;
+  opacity: 1;
+}
+
+#assignPromoModal .modal-container {
+  background-color: #1a1a1a;
+  border: 1px solid #2F2F2F;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+#assignPromoModal .modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #74E6FF;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 10001;
+}
+
+#assignPromoModal h2 {
+  color: #ffffff;
+  font-family: Onest, sans-serif;
+  font-size: 20px;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+#assignPromoModal .form-group {
+  margin-bottom: 20px;
+}
+
+#assignPromoModal label {
+  display: block;
+  color: #ffffff;
+  font-family: Onest, sans-serif;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+#assignPromoModal p {
+  color: #74E6FF;
+  font-family: Onest, sans-serif;
+  margin: 5px 0;
+}
+
+#assignPromoModal select {
+  width: 100%;
+  padding: 10px;
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #2F2F2F;
+  border-radius: 6px;
+  font-family: Onest, sans-serif;
+  font-size: 14px;
+}
+
+#assignPromoModal select:focus {
+  outline: none;
+  border-color: #74E6FF;
+  background-color: #333333;
+}
+
+#assignPromoModal select option {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+#assignPromoModal .btn {
+  padding: 10px 20px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: Onest, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+#assignPromoModal .btn-primary {
+  background-color: #74E6FF;
+  color: #000000;
+}
+
+#assignPromoModal .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(116, 230, 255, 0.3);
+}
+
+#assignPromoModal .btn-secondary {
+  background-color: transparent;
+  color: #74E6FF;
+  border: 1px solid #74E6FF;
+}
+
+#assignPromoModal .btn-secondary:hover {
+  background-color: rgba(116, 230, 255, 0.1);
 }
 
 @media (max-width: 768px) {

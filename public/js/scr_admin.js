@@ -7,6 +7,7 @@ class AdminPanel {
   async init() {
     this.setupModals();
     this.bindEvents();
+    this.setupShowMoreButtons();
     await this.reload();
   }
 
@@ -39,28 +40,38 @@ class AdminPanel {
 
     document.getElementById('addUserForm')?.addEventListener('submit', (event) => this.createUser(event));
     document.getElementById('addCarForm')?.addEventListener('submit', (event) => this.createCar(event));
+    document.querySelectorAll('input[name="galleryImages"]')?.forEach((input) => {
+      input.addEventListener('change', (event) => this.handleGalleryImagesChange(event));
+    });
     document.getElementById('promoForm')?.addEventListener('submit', (event) => this.savePromo(event));
     document.getElementById('optionForm')?.addEventListener('submit', (event) => this.saveOption(event));
+    document.getElementById('carPromoForm')?.addEventListener('submit', (event) => this.saveCarPromotion(event));
     document.getElementById('siteContentForm')?.addEventListener('submit', (event) => this.saveContent(event));
+    document.getElementById('assignPromoForm')?.addEventListener('submit', (event) => this.assignPromoToUser(event));
   }
 
   setupModals() {
     const userModal = document.getElementById('addUserModal');
     const carModal = document.getElementById('addCarModal');
+    const assignPromoModal = document.getElementById('assignPromoModal');
     document.getElementById('addCarBtn')?.addEventListener('click', () => {
-      carModal.style.display = 'flex';
+      if (!carModal) return;
+      carModal.classList.add('active');
       document.body.style.overflow = 'hidden';
     });
     document.getElementById('addUserBtn')?.addEventListener('click', () => {
-      userModal.style.display = 'flex';
+      if (!userModal) return;
+      userModal.classList.add('active');
       document.body.style.overflow = 'hidden';
     });
     document.getElementById('closeAddCar')?.addEventListener('click', () => this.closeModal(carModal));
     document.getElementById('cancelAddCar')?.addEventListener('click', () => this.closeModal(carModal));
     document.getElementById('cancelAddUser')?.addEventListener('click', () => this.closeModal(userModal));
+    document.getElementById('closeAssignPromo')?.addEventListener('click', () => this.closeModal(assignPromoModal));
+    document.getElementById('cancelAssignPromo')?.addEventListener('click', () => this.closeModal(assignPromoModal));
     userModal?.querySelector('.modal-close')?.addEventListener('click', () => this.closeModal(userModal));
 
-    [userModal, carModal].forEach((modal) => {
+    [userModal, carModal, assignPromoModal].forEach((modal) => {
       modal?.addEventListener('click', (event) => {
         if (event.target === modal) this.closeModal(modal);
       });
@@ -68,9 +79,13 @@ class AdminPanel {
   }
 
   closeModal(modal) {
-    modal.style.display = 'none';
+    if (!modal) return;
+    modal.classList.remove('active');
     document.body.style.overflow = '';
     modal.querySelector('form')?.reset();
+    if (modal.id === 'addCarModal') {
+      document.getElementById('galleryPreviewContainer')?.querySelectorAll('*')?.forEach((node) => node.remove());
+    }
   }
 
   async reload() {
@@ -82,11 +97,13 @@ class AdminPanel {
       this.loadCars(),
       this.loadBookings(),
       this.loadPromos(),
+      this.loadCarPromotions(),
       this.loadOptions(),
       this.loadContent(),
       this.loadNotifications(),
       this.loadActivity()
     ]);
+    this.updateAdminShowMore();
   }
 
   async loadStats() {
@@ -107,9 +124,17 @@ class AdminPanel {
         <td>${user.email || '-'}</td>
         <td>${user.role}</td>
         <td>${new Date(user.createdAt).toLocaleString('ru-RU')}</td>
-        <td><button class="delete-user" data-id="${user.id}">Удалить</button></td>
+        <td>
+          <button class="assign-promo-btn" data-id="${user.id}" data-name="${user.firstName} ${user.lastName}">Промокод</button>
+          <button class="delete-user" data-id="${user.id}">Удалить</button>
+        </td>
       </tr>
     `).join('');
+    tbody.querySelectorAll('.assign-promo-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        this.showAssignPromoModal(button.dataset.id, button.dataset.name);
+      });
+    });
     tbody.querySelectorAll('.delete-user').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!confirm('Удалить пользователя?')) return;
@@ -178,6 +203,7 @@ class AdminPanel {
         <td><button class="delete-user admin-delete-car" data-id="${car.id}">Удалить</button></td>
       </tr>
     `).join('');
+    this.populateCarSelect(data.cars);
     tbody.querySelectorAll('.admin-delete-car').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!confirm('Удалить автомобиль?')) return;
@@ -190,23 +216,33 @@ class AdminPanel {
   async loadBookings() {
     const data = await this.request('/api/admin/bookings');
     const tbody = document.getElementById('bookingsTbody');
-    tbody.innerHTML = data.bookings.map((booking) => `
+    tbody.innerHTML = data.bookings.map((booking) => {
+      const statuses = ['pending', 'payment_link_sent', 'paid', 'cancelled'];
+      const currentStatus = booking.status || 'pending';
+      const options = statuses.map((status) => `
+        <option value="${status}" ${status === currentStatus ? 'selected' : ''}>
+          ${status}
+        </option>`).join('');
+      return `
       <tr>
         <td>${booking.id}</td>
         <td>${booking.carTitle || '-'}</td>
-        <td>${booking.customerName}<br><span class="status">${booking.customerPhone}</span></td>
-        <td>${booking.customerEmail}</td>
+        <td>${booking.customerName}<br><span class="status">${booking.customerPhone || ''}</span></td>
+        <td>${booking.customerEmail || '-'}</td>
         <td>${booking.startDate} - ${booking.endDate}</td>
         <td>${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} ₽</td>
-        <td><span class="status ${booking.status === 'paid' ? 'published' : booking.status === 'payment_link_sent' ? 'pending' : 'blocked'}">${booking.status}</span></td>
+        <td><span class="status ${currentStatus === 'paid' ? 'published' : currentStatus === 'payment_link_sent' ? 'pending' : currentStatus === 'cancelled' ? 'blocked' : ''}">${currentStatus}</span></td>
         <td>
           <div class="review-actions">
-            <button class="review-action-btn publish send-link-btn" data-id="${booking.id}">Ссылка на оплату</button>
-            <button class="review-action-btn reject mark-paid-btn" data-id="${booking.id}">Отметить paid</button>
+            <select class="booking-status-select" data-id="${booking.id}">${options}</select>
+            <button class="review-action-btn publish apply-status-btn" data-id="${booking.id}">Обновить</button>
+            <button class="review-action-btn publish send-link-btn" data-id="${booking.id}">Ссылка</button>
+            <button class="review-action-btn reject delete-booking-btn" data-id="${booking.id}">Удалить</button>
           </div>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
+
     tbody.querySelectorAll('.send-link-btn').forEach((button) => {
       button.addEventListener('click', async () => {
         const result = await this.request(`/api/admin/bookings/${button.dataset.id}/send-payment-link`, { method: 'POST' });
@@ -214,12 +250,25 @@ class AdminPanel {
         await this.loadBookings();
       });
     });
-    tbody.querySelectorAll('.mark-paid-btn').forEach((button) => {
+
+    tbody.querySelectorAll('.apply-status-btn').forEach((button) => {
       button.addEventListener('click', async () => {
-        await this.request(`/api/admin/bookings/${button.dataset.id}`, {
+        const bookingId = button.dataset.id;
+        const select = tbody.querySelector(`select.booking-status-select[data-id="${bookingId}"]`);
+        if (!select) return;
+        const status = select.value;
+        await this.request(`/api/admin/bookings/${bookingId}`, {
           method: 'PATCH',
-          body: JSON.stringify({ status: 'paid' })
+          body: JSON.stringify({ status })
         });
+        await this.loadBookings();
+      });
+    });
+
+    tbody.querySelectorAll('.delete-booking-btn').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (!confirm('Удалить бронирование?')) return;
+        await this.request(`/api/admin/bookings/${button.dataset.id}`, { method: 'DELETE' });
         await this.loadBookings();
       });
     });
@@ -256,6 +305,86 @@ class AdminPanel {
         await this.loadPromos();
       });
     });
+  }
+
+  async loadCarPromotions() {
+    try {
+      const data = await this.request('/api/admin/car-promotions');
+      const tbody = document.getElementById('carPromoTbody');
+      tbody.innerHTML = data.promotions.map((promo) => `
+        <tr>
+          <td>${this.escapeHtml(promo.car?.title || '')}<br><span class="status">${this.escapeHtml(promo.car?.brand || '')} ${this.escapeHtml(promo.car?.model || '')}</span></td>
+          <td>${new Intl.NumberFormat('ru-RU').format(promo.promoPrice)} ₽</td>
+          <td>${promo.startDate} - ${promo.endDate}</td>
+          <td>${promo.isActive ? 'Да' : 'Нет'}</td>
+          <td>
+            <div class="review-actions">
+              <button class="review-action-btn publish edit-car-promo-btn" data-id="${promo.id}">Изменить</button>
+              <button class="review-action-btn reject delete-car-promo-btn" data-id="${promo.id}">Удалить</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('.edit-car-promo-btn').forEach((button) => {
+        button.addEventListener('click', () => {
+          const promo = data.promotions.find((item) => item.id === Number(button.dataset.id));
+          if (!promo) return;
+          document.getElementById('carPromoId').value = promo.id;
+          document.getElementById('carPromoTitleInput').value = promo.title || '';
+          document.getElementById('carPromoCarSelect').value = promo.carId;
+          document.getElementById('carPromoPriceInput').value = promo.promoPrice;
+          document.getElementById('carPromoStartDateInput').value = promo.startDate;
+          document.getElementById('carPromoEndDateInput').value = promo.endDate;
+          document.getElementById('carPromoActiveInput').checked = promo.isActive;
+        });
+      });
+
+      tbody.querySelectorAll('.delete-car-promo-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+          if (!confirm('Удалить акцию на автомобиль?')) return;
+          await this.request(`/api/admin/car-promotions/${button.dataset.id}`, { method: 'DELETE' });
+          await this.loadCarPromotions();
+        });
+      });
+    } catch (error) {
+      console.error('Load car promotions error:', error);
+      alert('Не удалось загрузить акции на автомобили');
+    }
+  }
+
+  async saveCarPromotion(event) {
+    event.preventDefault();
+    const id = document.getElementById('carPromoId').value;
+    const payload = {
+      carId: Number(document.getElementById('carPromoCarSelect').value),
+      promoPrice: Number(document.getElementById('carPromoPriceInput').value),
+      title: document.getElementById('carPromoTitleInput').value,
+      startDate: document.getElementById('carPromoStartDateInput').value,
+      endDate: document.getElementById('carPromoEndDateInput').value,
+      isActive: document.getElementById('carPromoActiveInput').checked
+    };
+    if (!payload.carId || !payload.promoPrice || !payload.startDate || !payload.endDate) {
+      alert('Заполните все обязательные поля акции');
+      return;
+    }
+    await this.request(id ? `/api/admin/car-promotions/${id}` : '/api/admin/car-promotions', {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify(payload)
+    });
+    event.target.reset();
+    document.getElementById('carPromoId').value = '';
+    document.getElementById('carPromoActiveInput').checked = true;
+    await this.loadCarPromotions();
+  }
+
+  populateCarSelect(cars) {
+    const select = document.getElementById('carPromoCarSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Выберите автомобиль</option>' +
+      cars.map((car) => `
+        <option value="${car.id}">${this.escapeHtml(car.title)} ${this.escapeHtml(car.brand)} ${this.escapeHtml(car.model)} (${new Intl.NumberFormat('ru-RU').format(car.pricePerDay)} ₽)</option>
+      `).join('');
   }
 
   async loadOptions() {
@@ -353,9 +482,30 @@ class AdminPanel {
   async createCar(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    await this.request('/api/admin/cars', { method: 'POST', body: formData });
+    const result = await this.request('/api/admin/cars', { method: 'POST', body: formData });
+    alert(result.message || 'Автомобиль успешно добавлен на сайт');
     this.closeModal(document.getElementById('addCarModal'));
+    document.getElementById('galleryPreviewContainer')?.querySelectorAll('*')?.forEach((node) => node.remove());
     await this.loadCars();
+  }
+
+  handleGalleryImagesChange(event) {
+    const container = document.getElementById('galleryPreviewContainer');
+    container.innerHTML = '';
+    const inputs = Array.from(document.querySelectorAll('input[name="galleryImages"]'));
+    const files = inputs.flatMap((input) => Array.from(input.files || []));
+    if (!files.length) {
+      return;
+    }
+    files.forEach((file) => {
+      const item = document.createElement('div');
+      item.className = 'gallery-preview-item';
+      item.innerHTML = `
+        <span class="gallery-preview-name">${file.name}</span>
+        <span class="gallery-preview-size">${Math.round(file.size / 1024)} КБ</span>
+      `;
+      container.appendChild(item);
+    });
   }
 
   async savePromo(event) {
@@ -416,16 +566,133 @@ class AdminPanel {
   async exportPdf() {
     const response = await fetch('/api/admin/export/report.pdf', { headers: this.headers });
     if (!response.ok) {
-      alert('Не удалось сформировать PDF');
+      alert('Не удалось сформировать отчет');
       return;
     }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'carzen-report.pdf';
+    link.download = 'carzen-report.txt';
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  async showAssignPromoModal(userId, userName) {
+    const modal = document.getElementById('assignPromoModal');
+    document.getElementById('assignPromoUserId').value = userId;
+    document.getElementById('assignPromoUserName').textContent = userName;
+    
+    await this.loadPromosList();
+    
+    if (modal) {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  async loadPromosList() {
+    try {
+      const data = await this.request('/api/admin/promo-codes');
+      const select = document.getElementById('assignPromoSelect');
+      const activePromos = data.promoCodes.filter(p => p.isActive);
+      
+      select.innerHTML = '<option value="">-- Выберите промокод --</option>' + 
+        activePromos.map(promo => `
+          <option value="${promo.id}">
+            ${promo.code} - ${promo.title || 'Без названия'} (${promo.discountPercent}%)
+          </option>
+        `).join('');
+    } catch (error) {
+      console.error('Load promos list error:', error);
+      alert('Не удалось загрузить список промокодов');
+    }
+  }
+
+  async assignPromoToUser(event) {
+    event.preventDefault();
+    const userId = document.getElementById('assignPromoUserId').value;
+    const promoId = document.getElementById('assignPromoSelect').value;
+    
+    if (!promoId) {
+      alert('Выберите промокод');
+      return;
+    }
+    
+    try {
+      await this.request(`/api/admin/users/${userId}/promos`, {
+        method: 'POST',
+        body: JSON.stringify({ promoId: Number(promoId) })
+      });
+      
+      alert('Промокод успешно выдан пользователю');
+      this.closeModal(document.getElementById('assignPromoModal'));
+      document.getElementById('assignPromoForm').reset();
+    } catch (error) {
+      console.error('Assign promo error:', error);
+      alert(error.message || 'Не удалось выдать промокод');
+    }
+  }
+
+  setupShowMoreButtons() {
+    document.querySelectorAll('.table-container').forEach((container) => {
+      const tbody = container.querySelector('tbody');
+      if (!tbody || !tbody.id) return;
+      let button = container.querySelector(`button.show-more-btn[data-table="${tbody.id}"]`);
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'show-more-btn btn btn-secondary';
+        button.dataset.table = tbody.id;
+        button.style.marginTop = '12px';
+        button.style.display = 'none';
+        container.appendChild(button);
+      }
+      button.addEventListener('click', () => this.toggleTableRows(tbody.id));
+    });
+  }
+
+  applyShowMoreToTable(tableId) {
+    const tbody = document.getElementById(tableId);
+    const button = document.querySelector(`button.show-more-btn[data-table="${tableId}"]`);
+    if (!tbody || !button) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (rows.length <= 6) {
+      button.style.display = 'none';
+      rows.forEach((row) => { row.style.display = ''; });
+      button.dataset.expanded = 'false';
+      return;
+    }
+    const hiddenCount = Math.max(0, rows.length - 6);
+    rows.forEach((row, index) => {
+      row.style.display = index >= 6 ? 'none' : '';
+    });
+    button.textContent = `Показать ещё (${hiddenCount})`;
+    button.style.display = '';
+    button.dataset.expanded = 'false';
+  }
+
+  toggleTableRows(tableId) {
+    const tbody = document.getElementById(tableId);
+    const button = document.querySelector(`button.show-more-btn[data-table="${tableId}"]`);
+    if (!tbody || !button) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const expanded = button.dataset.expanded === 'true';
+    if (expanded) {
+      rows.forEach((row, index) => { row.style.display = index >= 6 ? 'none' : ''; });
+      button.textContent = `Показать ещё (${Math.max(0, rows.length - 6)})`;
+      button.dataset.expanded = 'false';
+    } else {
+      rows.forEach((row) => { row.style.display = ''; });
+      button.textContent = 'Скрыть';
+      button.dataset.expanded = 'true';
+    }
+  }
+
+  updateAdminShowMore() {
+    ['usersTbody', 'consultationsTbody', 'reviewsTbody', 'carsTbody', 'bookingsTbody', 'promoTbody', 'carPromoTbody', 'notificationsTbody', 'activityTbody'].forEach((id) => {
+      this.applyShowMoreToTable(id);
+    });
   }
 
   escapeHtml(value) {

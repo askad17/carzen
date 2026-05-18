@@ -10,7 +10,7 @@ function parseDateRange(value) {
 }
 
 function renderHomeCarCard(car) {
-  const image = Array.isArray(car.gallery) && car.gallery.length ? car.gallery[0] : car.imageUrl;
+  const image = car.imageUrl || (Array.isArray(car.gallery) && car.gallery.length ? car.gallery[0] : '');
   return `
     <a href="/public/html/kia-card.html?id=${car.id}">
       <div class="rent-card dynamic-car-card" style="background-image:url('${image}')">

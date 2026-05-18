@@ -5,6 +5,7 @@ class CarPage {
     this.pageSection.dataset.carId = this.carId;
     this.car = null;
     this.images = [];
+    this.slideImages = [];
     this.currentIndex = 0;
     this.options = [];
     this.selectedPromo = null;
@@ -12,7 +13,8 @@ class CarPage {
   }
 
   async init() {
-    await Promise.all([this.loadCar(), this.loadOptions()]);
+    await this.loadCar();
+    await this.loadOptions();
     this.setupGalleryControls();
     this.setupBookingForm();
     this.reviewsController.init();
@@ -26,8 +28,29 @@ class CarPage {
       return;
     }
     this.car = data.car;
-    this.images = this.car.gallery?.length ? this.car.gallery : [this.car.imageUrl];
+    
+    this.images = Array.isArray(this.car.gallery) ? this.car.gallery.filter(img => img && img.trim()) : [];
+    this.slideImages = this.images.slice();
+    
+    console.log('Car loaded:', { carId: this.carId, slideCount: this.slideImages.length, slideImages: this.slideImages });
     this.renderCar();
+  }
+
+  getRateForBookingPeriod(startDate, endDate) {
+    if (!this.car) return 0;
+    const normalRate = this.car.pricePerDay || 0;
+    const promo = this.car.currentPromotion;
+    if (!promo || !startDate || !endDate) return normalRate;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const promoStart = new Date(promo.startDate);
+    const promoEnd = new Date(promo.endDate);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return normalRate;
+    if (start >= promoStart && end <= promoEnd) {
+      return promo.promoPrice || normalRate;
+    }
+    return normalRate;
   }
 
   async loadOptions() {
@@ -40,9 +63,25 @@ class CarPage {
   renderCar() {
     document.getElementById('carTitle').textContent = this.car.title;
     document.getElementById('bookingCarName').value = this.car.title;
-    document.getElementById('carMainPrice').textContent = `${new Intl.NumberFormat('ru-RU').format(this.car.pricePerDay)} рублей/сутки`;
-    document.getElementById('mainCarImage').src = this.images[0];
-    document.getElementById('mainCarImage').alt = this.car.title;
+    const priceEl = document.getElementById('carMainPrice');
+    const promoLabel = document.getElementById('carPromoLabel');
+    const normalPrice = this.car.pricePerDay || 0;
+
+    if (this.car.currentPromotion) {
+      const promo = this.car.currentPromotion;
+      priceEl.innerHTML = `
+        <span class="price-old">${new Intl.NumberFormat('ru-RU').format(normalPrice)} ₽/сутки</span>
+        <span class="price-new">${new Intl.NumberFormat('ru-RU').format(promo.promoPrice)} ₽/сутки</span>
+      `;
+      if (promoLabel) {
+        promoLabel.style.display = '';
+        promoLabel.innerHTML = `Акция ${promo.title ? `"${promo.title}"` : 'по специальной цене'} с ${promo.startDate} по ${promo.endDate}`;
+      }
+    } else {
+      priceEl.textContent = `${new Intl.NumberFormat('ru-RU').format(normalPrice)} ₽/сутки`;
+      if (promoLabel) promoLabel.style.display = 'none';
+    }
+
     document.getElementById('carDescriptionLink').textContent = this.car.description || 'Описание автомобиля';
     document.title = `${this.car.title} - Carzen`;
 
@@ -77,7 +116,7 @@ class CarPage {
       </div>
     `).join('');
 
-    this.renderDots();
+    this.renderSlider();
     this.prefillUser();
     this.updateSummary();
   }
@@ -91,33 +130,74 @@ class CarPage {
     `;
   }
 
-  renderDots() {
+  renderSlider() {
+    const sliderContainer = document.getElementById('gallerySlider');
+    const sliderImage = document.getElementById('sliderImage');
     const dotsRoot = document.getElementById('galleryDots');
-    dotsRoot.innerHTML = this.images.map((_, index) => `<span class="dot ${index === 0 ? 'active' : ''}" data-index="${index}"></span>`).join('');
-    dotsRoot.querySelectorAll('.dot').forEach((dot) => {
-      dot.addEventListener('click', () => this.goToSlide(Number(dot.dataset.index)));
-    });
+
+    if (!sliderContainer || !sliderImage || !dotsRoot) return;
+
+    const slides = this.slideImages;
+    if (slides.length > 0) {
+      sliderContainer.style.display = '';
+      this.currentIndex = ((this.currentIndex % slides.length) + slides.length) % slides.length;
+      sliderImage.src = slides[this.currentIndex];
+      sliderImage.alt = `${this.car.title} - фото ${this.currentIndex + 1}`;
+      dotsRoot.innerHTML = slides.map((_, index) => `<span class="dot ${index === this.currentIndex ? 'active' : ''}" data-index="${index}"></span>`).join('');
+      dotsRoot.querySelectorAll('.dot').forEach((dot) => {
+        dot.addEventListener('click', () => this.goToSlide(Number(dot.dataset.index)));
+      });
+    } else {
+      sliderContainer.style.display = 'none';
+      dotsRoot.innerHTML = '';
+    }
   }
 
   setupGalleryControls() {
-    document.querySelector('.gallery-nav.prev')?.addEventListener('click', () => this.goToSlide(this.currentIndex - 1));
-    document.querySelector('.gallery-nav.next')?.addEventListener('click', () => this.goToSlide(this.currentIndex + 1));
-    document.getElementById('heroBookBtn')?.addEventListener('click', () => document.getElementById('bookingSection').scrollIntoView({ behavior: 'smooth' }));
-    document.getElementById('pricingBookBtn')?.addEventListener('click', () => document.getElementById('bookingSection').scrollIntoView({ behavior: 'smooth' }));
-    setInterval(() => {
-      if (this.images.length > 1) this.goToSlide(this.currentIndex + 1);
-    }, 5000);
+    const prevBtn = document.querySelector('.gallery-nav.prev');
+    const nextBtn = document.querySelector('.gallery-nav.next');
+    const heroBookBtn = document.getElementById('heroBookBtn');
+    const pricingBookBtn = document.getElementById('pricingBookBtn');
+
+    if (prevBtn) prevBtn.addEventListener('click', () => this.goToSlide(this.currentIndex - 1));
+    if (nextBtn) nextBtn.addEventListener('click', () => this.goToSlide(this.currentIndex + 1));
+    if (heroBookBtn) heroBookBtn.addEventListener('click', () => document.getElementById('bookingSection').scrollIntoView({ behavior: 'smooth' }));
+    if (pricingBookBtn) pricingBookBtn.addEventListener('click', () => document.getElementById('bookingSection').scrollIntoView({ behavior: 'smooth' }));
+
+    // Автоматическое переключение фото каждые 5 секунд только если фото больше одного
+    if (this.slideInterval) {
+      clearInterval(this.slideInterval);
+    }
+    if (this.slideImages.length > 1) {
+      this.slideInterval = setInterval(() => {
+        this.goToSlide(this.currentIndex + 1);
+      }, 5000);
+    }
+
+    console.log('Gallery controls setup:', { slideCount: this.slideImages.length, slideInterval: !!this.slideInterval });
   }
 
   goToSlide(index) {
-    if (!this.images.length) return;
-    this.currentIndex = (index + this.images.length) % this.images.length;
-    const image = document.getElementById('mainCarImage');
-    image.style.opacity = '0.2';
+    if (!this.slideImages || !this.slideImages.length) {
+      console.warn('No images available for slide');
+      return;
+    }
+
+    const oldIndex = this.currentIndex;
+    this.currentIndex = ((index % this.slideImages.length) + this.slideImages.length) % this.slideImages.length;
+    const sliderImage = document.getElementById('sliderImage');
+    if (!sliderImage) return;
+
+    console.log(`Slide transition: ${oldIndex} -> ${this.currentIndex}`);
+
+    sliderImage.style.opacity = '0.2';
     setTimeout(() => {
-      image.src = this.images[this.currentIndex];
-      image.style.opacity = '1';
+      sliderImage.src = this.slideImages[this.currentIndex];
+      sliderImage.alt = `${this.car.title} - фото ${this.currentIndex + 1}`;
+      sliderImage.style.opacity = '1';
     }, 180);
+
+    // Обновляем активную точку
     document.querySelectorAll('.dot').forEach((dot, dotIndex) => {
       dot.classList.toggle('active', dotIndex === this.currentIndex);
     });
@@ -159,6 +239,23 @@ class CarPage {
     return Array.from(document.querySelectorAll('.booking-option-input:checked')).map((input) => Number(input.value));
   }
 
+  getRateForBookingPeriod(startDate, endDate) {
+    if (!this.car) return 0;
+    const normalRate = this.car.pricePerDay || 0;
+    const promo = this.car.currentPromotion;
+    if (!promo || !startDate || !endDate) return normalRate;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const promoStart = new Date(promo.startDate);
+    const promoEnd = new Date(promo.endDate);
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return normalRate;
+    if (start >= promoStart && end <= promoEnd) {
+      return promo.promoPrice || normalRate;
+    }
+    return normalRate;
+  }
+
   async applyPromo() {
     const code = document.getElementById('bookingPromoCode').value.trim();
     const meta = document.getElementById('promoMeta');
@@ -190,7 +287,8 @@ class CarPage {
     const startDate = document.getElementById('bookingStartDate').value;
     const endDate = document.getElementById('bookingEndDate').value;
     const days = startDate && endDate ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000)) : 0;
-    const basePrice = days * this.car.pricePerDay;
+    const dailyRate = this.getRateForBookingPeriod(startDate, endDate);
+    const basePrice = days * dailyRate;
     const optionsPrice = this.getSelectedOptions().reduce((sum, id) => {
       const option = this.options.find((item) => item.id === id);
       if (!option) return sum;
@@ -199,6 +297,8 @@ class CarPage {
     const discountPercent = this.selectedPromo?.discountPercent || 0;
     const discountAmount = Math.round((basePrice + optionsPrice) * (discountPercent / 100));
     const totalPrice = Math.max(0, basePrice + optionsPrice - discountAmount);
+    const promoNote = dailyRate !== this.car.pricePerDay ?
+      `<div class="booking-summary-note">Промо-цена применяется: ${new Intl.NumberFormat('ru-RU').format(dailyRate)} ₽/сутки</div>` : '';
 
     document.getElementById('bookingSummary').innerHTML = `
       <div class="booking-summary-card">
@@ -216,6 +316,7 @@ class CarPage {
       <div class="booking-summary-card">
         <span>Итого</span><strong>${new Intl.NumberFormat('ru-RU').format(totalPrice)} ₽</strong>
       </div>
+      ${promoNote}
     `;
   }
 

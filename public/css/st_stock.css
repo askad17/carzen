@@ -18,15 +18,39 @@
     justify-content: center;
     margin: 0 auto;
 }
+.stock-empty {
+    margin-top: 40px;
+    color: #ffffff;
+    font-size: 18px;
+    text-align: center;
+}
 .rent-card{
     background-image: url(/image/bmw_m440-2.png);
     height: 320px;
     max-width: 250px;
-    padding: 5px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    background-color: rgba(255, 255, 255, 0.04);
+    background-size: cover;
+    background-position: center;
+    color: #ffffff;
+}
+.rent-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.75));
+    z-index: 0;
+}
+.rent-card > * {
+    position: relative;
+    z-index: 1;
 }
 .rent-card:hover{
     transform: translateY(-5px);

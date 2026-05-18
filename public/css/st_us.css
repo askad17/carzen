@@ -1,3 +1,10 @@
+h2{
+    font-family: Onest, sans-serif;
+    font-size: 36px;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 30px;
+}
 .intro-section {
     position: relative;
     min-height: 60vh;
@@ -377,6 +384,10 @@ box-shadow:0 10px 30px #0000004d
 }
 
 @media (max-width: 968px) {
+    h2{
+        font-size: 32px;
+        margin-bottom: 20px;
+    }
     .intro-section {
         padding: 80px 0;
         min-height: 50vh;
@@ -405,6 +416,9 @@ box-shadow:0 10px 30px #0000004d
 }
 
 @media (max-width: 576px) {
+    h2{
+        font-size: 28px;
+    }
     .intro-section {
         padding: 60px 0;
         min-height: 40vh;

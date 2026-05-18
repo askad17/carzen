@@ -4,8 +4,11 @@ class CatalogPage {
     this.form = document.getElementById('filtersForm');
     this.grid = document.getElementById('catalogGrid');
     this.summary = document.getElementById('catalogSummary');
+    this.showMoreBtn = document.getElementById('catalogShowMoreBtn');
     this.urlParams = new URLSearchParams(window.location.search);
     this.filters = this.readFiltersFromUrl();
+    this.visibleCount = 6;
+    this.cars = [];
   }
 
   init() {
@@ -13,6 +16,7 @@ class CatalogPage {
     document.querySelector('.filters-close')?.addEventListener('click', () => this.closeModal());
     document.getElementById('resetFilters')?.addEventListener('click', () => this.resetFilters());
     document.getElementById('catalogResetBtn')?.addEventListener('click', () => this.resetFilters());
+    this.showMoreBtn?.addEventListener('click', () => this.showMoreCars());
     this.modal?.addEventListener('click', (event) => {
       if (event.target === this.modal) this.closeModal();
     });
@@ -20,6 +24,7 @@ class CatalogPage {
       event.preventDefault();
       this.filters = this.readFiltersFromForm();
       this.writeFiltersToUrl();
+      this.visibleCount = 6;
       this.loadCars();
       this.closeModal();
     });
@@ -111,7 +116,7 @@ class CatalogPage {
   }
 
   renderCard(car) {
-    const image = Array.isArray(car.gallery) && car.gallery.length ? car.gallery[0] : car.imageUrl;
+    const image = car.imageUrl || (Array.isArray(car.gallery) && car.gallery.length ? car.gallery[0] : '');
     return `
       <a href="/public/html/kia-card.html?id=${car.id}">
         <div class="rent-card dynamic-car-card" style="background-image:url('${image}')">
@@ -140,13 +145,37 @@ class CatalogPage {
       });
       const response = await fetch(`/api/cars?${params.toString()}`);
       const data = await response.json();
-      const cars = data.cars || [];
-      this.summary.textContent = cars.length ? `Найдено автомобилей: ${cars.length}` : 'Автомобили по выбранным фильтрам не найдены';
-      this.grid.innerHTML = cars.map((car) => this.renderCard(car)).join('') || '<p class="feedback-text">Попробуйте изменить фильтры.</p>';
+      this.cars = data.cars || [];
+      this.summary.textContent = '';
+      this.renderCarList();
     } catch (error) {
       console.error('Catalog load error:', error);
       this.grid.innerHTML = '<p class="feedback-text">Не удалось загрузить каталог.</p>';
+      if (this.showMoreBtn) this.showMoreBtn.style.display = 'none';
     }
+  }
+
+  renderCarList() {
+    const visibleCars = this.cars.slice(0, this.visibleCount);
+    if (!visibleCars.length) {
+      this.grid.innerHTML = '<p class="feedback-text">Попробуйте изменить фильтры.</p>';
+      if (this.showMoreBtn) this.showMoreBtn.style.display = 'none';
+      return;
+    }
+    this.grid.innerHTML = visibleCars.map((car) => this.renderCard(car)).join('');
+    if (this.showMoreBtn) {
+      if (this.cars.length > this.visibleCount) {
+        this.showMoreBtn.style.display = '';
+        this.showMoreBtn.textContent = `Показать ещё (${Math.max(0, this.cars.length - this.visibleCount)})`;
+      } else {
+        this.showMoreBtn.style.display = 'none';
+      }
+    }
+  }
+
+  showMoreCars() {
+    this.visibleCount += 6;
+    this.renderCarList();
   }
 }
 

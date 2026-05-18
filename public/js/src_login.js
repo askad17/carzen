@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorNotification = document.getElementById('errorNotification');
     
     // Проверка: если уже авторизован — сразу в личный кабинет
-    const token = localStorage.getItem('carzen_token');
+    const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
     const savedUser = JSON.parse(localStorage.getItem('carzen_user') || 'null');
     if (token) {
         window.location.href = savedUser?.role === 'admin'
@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (response.ok) {
             localStorage.setItem('carzen_token', result.token);
+            localStorage.setItem('token', result.token);
             localStorage.setItem('carzen_user', JSON.stringify(result.user));
             
             if (result.user.role === 'admin') {

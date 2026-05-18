@@ -1,6 +1,6 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
@@ -13,7 +13,11 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'very_secret_key_change_me';
 const ROOT_DIR = __dirname;
-const DB_PATH = path.join(ROOT_DIR, 'carzen.db');
+const MYSQL_HOST = process.env.MYSQL_HOST || 'localhost';
+const MYSQL_PORT = Number(process.env.MYSQL_PORT || 3306);
+const MYSQL_USER = process.env.MYSQL_USER || 'root';
+const MYSQL_PASSWORD = process.env.MYSQL_PASSWORD || '89878518850Am!';
+const MYSQL_DATABASE = process.env.MYSQL_DATABASE || 'carzen';
 const IMAGE_DIR = path.join(ROOT_DIR, 'image');
 const MAIL_PREVIEW_DIR = path.join(ROOT_DIR, 'public', 'mail-previews');
 
@@ -27,7 +31,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/public', express.static(path.join(ROOT_DIR, 'public')));
 app.use('/image', express.static(IMAGE_DIR));
 
-const db = new sqlite3.Database(DB_PATH);
+const DB_CONFIG = {
+  host: MYSQL_HOST,
+  port: MYSQL_PORT,
+  user: MYSQL_USER,
+  password: MYSQL_PASSWORD,
+  database: MYSQL_DATABASE,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  dateStrings: true,
+  supportBigNumbers: true,
+  bigNumberStrings: true
+};
+
+const pool = mysql.createPool(DB_CONFIG);
 
 const mailTransport = nodemailer.createTransport({
   streamTransport: true,
@@ -35,31 +53,36 @@ const mailTransport = nodemailer.createTransport({
   newline: 'unix'
 });
 
-function dbRun(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function onRun(err) {
-      if (err) return reject(err);
-      resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+async function executeQuery(sql, params = []) {
+  const result = await pool.execute(sql, params);
+  if (Array.isArray(result)) {
+    return result;
+  }
+  return [result, undefined];
 }
 
-function dbGet(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) return reject(err);
-      resolve(row || null);
-    });
-  });
+async function dbRun(sql, params = []) {
+  const [result] = await executeQuery(sql, params);
+  if (!result) {
+    return { lastID: 0, changes: 0 };
+  }
+  return { lastID: result.insertId || 0, changes: result.affectedRows || 0 };
 }
 
-function dbAll(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) return reject(err);
-      resolve(rows || []);
-    });
-  });
+async function dbGet(sql, params = []) {
+  const [rows] = await executeQuery(sql, params);
+  if (Array.isArray(rows)) {
+    return rows[0] || null;
+  }
+  return rows || null;
+}
+
+async function dbAll(sql, params = []) {
+  const [rows] = await executeQuery(sql, params);
+  if (Array.isArray(rows)) {
+    return rows;
+  }
+  return rows ? [rows] : [];
 }
 
 function normalizeKey(value) {
@@ -67,6 +90,10 @@ function normalizeKey(value) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '-');
+}
+
+function getMySQLDateTime(date = new Date()) {
+  return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 function safeJsonParse(value, fallback) {
@@ -134,11 +161,20 @@ function mapUserRow(row) {
 
 function parseCarRow(row) {
   if (!row) return null;
+
+  let gallery = safeJsonParse(row.galleryJson, []);
+  if (!Array.isArray(gallery)) {
+    gallery = [];
+  }
+  gallery = gallery.filter((img) => typeof img === 'string' && img.trim());
+  const mainImageUrl = String(row.imageUrl || '').trim();
+  if (mainImageUrl) {
+    gallery = gallery.filter((img) => img !== mainImageUrl);
+  }
+
   return {
     ...row,
-    gallery: safeJsonParse(row.galleryJson, row.imageUrl ? [row.imageUrl] : []),
-    specs: safeJsonParse(row.specsJson, {}),
-    priceTiers: safeJsonParse(row.priceTiersJson, []),
+    gallery,
     featuresList: String(row.features || '')
       .split(',')
       .map((item) => item.trim())
@@ -146,11 +182,38 @@ function parseCarRow(row) {
   };
 }
 
+function parseSpecsText(text) {
+  const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const specs = {};
+  lines.forEach((line) => {
+    const parts = line.split(/[:\-вЂ“вЂ”]/).map((part) => part.trim()).filter(Boolean);
+    if (!parts.length) return;
+    const key = parts[0];
+    const value = parts.slice(1).join(': ') || true;
+    specs[key] = value;
+  });
+  return specs;
+}
+
+function parsePriceTiersText(text) {
+  const lines = String(text || '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return lines.map((line) => {
+    const match = line.match(/^(.*?)[\sвЂ“вЂ”:-]+([\d\s]+)\s*$/);
+    if (match) {
+      return {
+        label: match[1].trim(),
+        price: Number(match[2].replace(/\s+/g, ''))
+      };
+    }
+    return { label: line, price: 0 };
+  });
+}
+
 async function logActivity(action, meta = {}) {
   try {
     await dbRun(
       'INSERT INTO activity_log (action, metaJson, createdAt) VALUES (?, ?, ?)',
-      [action, JSON.stringify(meta), new Date().toISOString()]
+      [action, JSON.stringify(meta), getMySQLDateTime()]
     );
   } catch (error) {
     console.error('Activity log error:', error);
@@ -161,7 +224,7 @@ async function addNotification({ channel, recipient, subject = '', content = '',
   await dbRun(
     `INSERT INTO notifications (channel, recipient, subject, content, status, externalId, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [channel, recipient, subject, content, status, externalId, new Date().toISOString()]
+    [channel, recipient, subject, content, status, externalId, getMySQLDateTime()]
   );
 }
 
@@ -171,22 +234,22 @@ async function sendBookingEmail(booking, car) {
   }
 
   const html = `
-    <h1>Carzen: бронирование подтверждено</h1>
-    <p>Здравствуйте, ${escapeHtml(booking.customerName)}.</p>
-    <p>Ваше бронирование оплачено.</p>
+    <h1>Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ</h1>
+    <p>Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${escapeHtml(booking.customerName)}.</p>
+    <p>Р’Р°С€Рµ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕРїР»Р°С‡РµРЅРѕ.</p>
     <ul>
-      <li>Автомобиль: ${escapeHtml(car.title)}</li>
-      <li>Даты: ${escapeHtml(booking.startDate)} - ${escapeHtml(booking.endDate)}</li>
-      <li>Сумма: ${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} руб.</li>
-      <li>Статус: оплачено</li>
+      <li>РђРІС‚РѕРјРѕР±РёР»СЊ: ${escapeHtml(car.title)}</li>
+      <li>Р”Р°С‚С‹: ${escapeHtml(booking.startDate)} - ${escapeHtml(booking.endDate)}</li>
+      <li>РЎСѓРјРјР°: ${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} СЂСѓР±.</li>
+      <li>РЎС‚Р°С‚СѓСЃ: РѕРїР»Р°С‡РµРЅРѕ</li>
     </ul>
-    <p>Спасибо, что выбрали Carzen.</p>
+    <p>РЎРїР°СЃРёР±Рѕ, С‡С‚Рѕ РІС‹Р±СЂР°Р»Рё Carzen.</p>
   `;
 
   const info = await mailTransport.sendMail({
     from: 'no-reply@carzen.local',
     to: booking.customerEmail,
-    subject: 'Carzen: бронирование подтверждено',
+    subject: 'Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ',
     html
   });
 
@@ -197,7 +260,7 @@ async function sendBookingEmail(booking, car) {
   await addNotification({
     channel: 'email',
     recipient: booking.customerEmail,
-    subject: 'Carzen: бронирование подтверждено',
+    subject: 'Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ',
     content: html,
     status: 'preview_saved',
     externalId: `/public/mail-previews/${filename}`
@@ -207,56 +270,37 @@ async function sendBookingEmail(booking, car) {
 }
 
 function generateSimplePdf(title, lines) {
-  const pdfLines = [];
-  const objects = [];
-
-  function addObject(content) {
-    objects.push(content);
-  }
-
-  function pdfText(value) {
-    return String(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-  }
-
-  let y = 800;
-  pdfLines.push(`BT /F1 18 Tf 50 ${y} Td (${pdfText(title)}) Tj ET`);
-  y -= 32;
-
+  // Р“РµРЅРµСЂРёСЂСѓРµРј РѕР±С‹С‡РЅС‹Р№ С‚РµРєСЃС‚РѕРІС‹Р№ РѕС‚С‡РµС‚ СЃ РєРѕСЂСЂРµРєС‚РЅРѕР№ РєРѕРґРёСЂРѕРІРєРѕР№ UTF-8
+  let content = title + '\n';
+  content += '='.repeat(75) + '\n\n';
+  
   lines.forEach((line) => {
-    if (y < 60) return;
-    pdfLines.push(`BT /F1 11 Tf 50 ${y} Td (${pdfText(line)}) Tj ET`);
-    y -= 16;
+    if (Array.isArray(line)) {
+      if (line.length === 0) {
+        content += '\n';
+      } else {
+        // Р¤РѕСЂРјР°С‚РёСЂСѓРµРј С‚Р°Р±Р»РёС†Сѓ СЃ С„РёРєСЃРёСЂРѕРІР°РЅРЅРѕР№ С€РёСЂРёРЅРѕР№
+        const cells = line.map((cell) => {
+          const str = String(cell ?? '').replace(/\n/g, ' ');
+          return str.length > 22 ? str.substring(0, 19) + '...' : str.padEnd(22);
+        });
+        content += cells.join('  ') + '\n';
+      }
+    } else {
+      content += String(line) + '\n';
+    }
   });
-
-  addObject('<< /Type /Catalog /Pages 2 0 R >>');
-  addObject('<< /Type /Pages /Count 1 /Kids [3 0 R] >>');
-  addObject('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>');
-  addObject(`<< /Length ${Buffer.byteLength(pdfLines.join('\n'))} >>\nstream\n${pdfLines.join('\n')}\nendstream`);
-  addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-
-  let output = '%PDF-1.4\n';
-  const offsets = [0];
-
-  objects.forEach((object, index) => {
-    offsets.push(Buffer.byteLength(output));
-    output += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  });
-
-  const xrefOffset = Buffer.byteLength(output);
-  output += `xref\n0 ${objects.length + 1}\n`;
-  output += '0000000000 65535 f \n';
-  for (let i = 1; i < offsets.length; i += 1) {
-    output += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
-  }
-  output += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return Buffer.from(output, 'utf8');
+  
+  return Buffer.from(content, 'utf-8');
 }
 
 async function ensureColumn(tableName, columnName, sqlDefinition) {
-  const columns = await dbAll(`PRAGMA table_info(${tableName})`);
-  if (!columns.some((column) => column.name === columnName)) {
-    await dbRun(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${sqlDefinition}`);
+  const row = await dbGet(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    [DB_CONFIG.database, tableName, columnName]
+  );
+  if (!row) {
+    await dbRun(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${sqlDefinition}`);
   }
 }
 
@@ -266,37 +310,37 @@ async function ensureDefaultData() {
     await dbRun(
       `INSERT INTO users (login, passwordHash, firstName, lastName, role, createdAt, email)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ['adminka', bcrypt.hashSync('123adminka', 10), 'Админ', 'Carzen', 'admin', new Date().toISOString(), 'admin@carzen.local']
+      ['adminka', bcrypt.hashSync('123adminka', 10), 'РђРґРјРёРЅ', 'Carzen', 'admin', getMySQLDateTime(), 'admin@carzen.local']
     );
   }
 
   const siteContentDefaults = {
-    hero_title: 'Аренда автомобилей легко',
-    hero_subtitle: 'Выберите идеальный автомобиль для ваших задач',
+    hero_title: 'РђСЂРµРЅРґР° Р°РІС‚РѕРјРѕР±РёР»РµР№ Р»РµРіРєРѕ',
+    hero_subtitle: 'Р’С‹Р±РµСЂРёС‚Рµ РёРґРµР°Р»СЊРЅС‹Р№ Р°РІС‚РѕРјРѕР±РёР»СЊ РґР»СЏ РІР°С€РёС… Р·Р°РґР°С‡',
     support_phone: '+7 (999) 123-45-67',
     support_email: 'carzen@ya.ru',
-    footer_address_1: 'Оренбург, ул. Победы, 157Б',
-    footer_address_2: 'Екатеринбург, пр. Ленина, 68/1',
-    footer_address_3: 'Казань, ул. Баумана, 23А',
-    promo_label: 'Скидка 7% по промокоду',
+    footer_address_1: 'РћСЂРµРЅР±СѓСЂРі, СѓР». РџРѕР±РµРґС‹, 157Р‘',
+    footer_address_2: 'Р•РєР°С‚РµСЂРёРЅР±СѓСЂРі, РїСЂ. Р›РµРЅРёРЅР°, 68/1',
+    footer_address_3: 'РљР°Р·Р°РЅСЊ, СѓР». Р‘Р°СѓРјР°РЅР°, 23Рђ',
+    promo_label: 'РЎРєРёРґРєР° 7% РїРѕ РїСЂРѕРјРѕРєРѕРґСѓ',
     promo_code: 'FIRSTCARZEN'
   };
 
   for (const [key, value] of Object.entries(siteContentDefaults)) {
     await dbRun(
-      `INSERT OR IGNORE INTO site_content (key, value, updatedAt) VALUES (?, ?, ?)`,
-      [key, value, new Date().toISOString()]
+      `INSERT IGNORE INTO site_content (\`key\`, value, updatedAt) VALUES (?, ?, ?)`,
+      [key, value, getMySQLDateTime()]
     );
   }
 
   const extraOptionsCount = await dbGet('SELECT COUNT(*) as total FROM extra_options');
   if (!extraOptionsCount || !extraOptionsCount.total) {
-    const now = new Date().toISOString();
+    const now = getMySQLDateTime();
     const defaults = [
-      ['child-seat', 'Детское кресло', 600, 'once', 1, 1, now],
-      ['navigator', 'GPS-навигатор', 350, 'day', 1, 2, now],
-      ['second-driver', 'Второй водитель', 1200, 'once', 1, 3, now],
-      ['full-insurance', 'Расширенная защита', 900, 'day', 1, 4, now]
+      ['child-seat', 'Р”РµС‚СЃРєРѕРµ РєСЂРµСЃР»Рѕ', 600, 'once', 1, 1, now],
+      ['navigator', 'GPS-РЅР°РІРёРіР°С‚РѕСЂ', 350, 'day', 1, 2, now],
+      ['second-driver', 'Р’С‚РѕСЂРѕР№ РІРѕРґРёС‚РµР»СЊ', 1200, 'once', 1, 3, now],
+      ['full-insurance', 'Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р·Р°С‰РёС‚Р°', 900, 'day', 1, 4, now]
     ];
     for (const option of defaults) {
       await dbRun(
@@ -312,13 +356,13 @@ async function ensureDefaultData() {
     await dbRun(
       `INSERT INTO promo_codes (code, title, discountPercent, isActive, createdAt)
        VALUES (?, ?, ?, ?, ?)`,
-      ['FIRSTCARZEN', 'Приветственный промокод', 7, 1, new Date().toISOString()]
+      ['FIRSTCARZEN', 'РџСЂРёРІРµС‚СЃС‚РІРµРЅРЅС‹Р№ РїСЂРѕРјРѕРєРѕРґ', 7, 1, getMySQLDateTime()]
     );
   }
 
   const carCount = await dbGet('SELECT COUNT(*) as total FROM cars');
   if (!carCount || !carCount.total) {
-    const now = new Date().toISOString();
+    const now = getMySQLDateTime();
     const cars = [
       {
         title: 'BMW M440 Coupe',
@@ -327,22 +371,22 @@ async function ensureDefaultData() {
         year: 2022,
         pricePerDay: 10000,
         mileage: 12000,
-        fuelType: 'Бензин',
-        transmission: 'АКПП',
-        driveType: 'Полный',
+        fuelType: 'Р‘РµРЅР·РёРЅ',
+        transmission: 'РђРљРџРџ',
+        driveType: 'РџРѕР»РЅС‹Р№',
         seats: 5,
-        bodyType: 'Купе',
-        city: 'Екатеринбург',
-        description: 'Спортивное купе для тех, кто хочет эмоций и комфортной повседневной езды.',
-        features: 'Климат-контроль,Камера 360,CarPlay',
+        bodyType: 'РљСѓРїРµ',
+        city: 'Р•РєР°С‚РµСЂРёРЅР±СѓСЂРі',
+        description: 'РЎРїРѕСЂС‚РёРІРЅРѕРµ РєСѓРїРµ РґР»СЏ С‚РµС…, РєС‚Рѕ С…РѕС‡РµС‚ СЌРјРѕС†РёР№ Рё РєРѕРјС„РѕСЂС‚РЅРѕР№ РїРѕРІСЃРµРґРЅРµРІРЅРѕР№ РµР·РґС‹.',
+        features: 'РљР»РёРјР°С‚-РєРѕРЅС‚СЂРѕР»СЊ,РљР°РјРµСЂР° 360,CarPlay',
         imageUrl: '/image/bmw_m440-2.png',
         galleryJson: JSON.stringify(['/image/bmw_m440-2.png']),
-        specsJson: JSON.stringify({ category: 'Премиум', power: '387 л.с.', engineVolume: '3.0 литра', color: 'Синий' }),
+        specsJson: JSON.stringify({ category: 'РџСЂРµРјРёСѓРј', power: '387 Р».СЃ.', engineVolume: '3.0 Р»РёС‚СЂР°', color: 'РЎРёРЅРёР№' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 суток', price: 10000 },
-          { label: '9-15 суток', price: 9500 },
-          { label: '16-30 суток', price: 9000 },
-          { label: 'от 31 суток', price: 8600 }
+          { label: '1-8 СЃСѓС‚РѕРє', price: 10000 },
+          { label: '9-15 СЃСѓС‚РѕРє', price: 9500 },
+          { label: '16-30 СЃСѓС‚РѕРє', price: 9000 },
+          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 8600 }
         ])
       },
       {
@@ -352,22 +396,22 @@ async function ensureDefaultData() {
         year: 2021,
         pricePerDay: 3500,
         mileage: 14000,
-        fuelType: 'Бензин',
-        transmission: 'АКПП',
-        driveType: 'Передний',
+        fuelType: 'Р‘РµРЅР·РёРЅ',
+        transmission: 'РђРљРџРџ',
+        driveType: 'РџРµСЂРµРґРЅРёР№',
         seats: 5,
-        bodyType: 'Седан',
-        city: 'Оренбург',
-        description: 'Экономичный городской автомобиль с простым и понятным управлением.',
-        features: 'Кондиционер,Подогрев сидений,USB',
+        bodyType: 'РЎРµРґР°РЅ',
+        city: 'РћСЂРµРЅР±СѓСЂРі',
+        description: 'Р­РєРѕРЅРѕРјРёС‡РЅС‹Р№ РіРѕСЂРѕРґСЃРєРѕР№ Р°РІС‚РѕРјРѕР±РёР»СЊ СЃ РїСЂРѕСЃС‚С‹Рј Рё РїРѕРЅСЏС‚РЅС‹Рј СѓРїСЂР°РІР»РµРЅРёРµРј.',
+        features: 'РљРѕРЅРґРёС†РёРѕРЅРµСЂ,РџРѕРґРѕРіСЂРµРІ СЃРёРґРµРЅРёР№,USB',
         imageUrl: '/image/hyundai.png',
         galleryJson: JSON.stringify(['/image/hyundai.png']),
-        specsJson: JSON.stringify({ category: 'Комфорт', power: '123 л.с.', engineVolume: '1.6 литра', color: 'Белый' }),
+        specsJson: JSON.stringify({ category: 'РљРѕРјС„РѕСЂС‚', power: '123 Р».СЃ.', engineVolume: '1.6 Р»РёС‚СЂР°', color: 'Р‘РµР»С‹Р№' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 суток', price: 3500 },
-          { label: '9-15 суток', price: 3300 },
-          { label: '16-30 суток', price: 3100 },
-          { label: 'от 31 суток', price: 2900 }
+          { label: '1-8 СЃСѓС‚РѕРє', price: 3500 },
+          { label: '9-15 СЃСѓС‚РѕРє', price: 3300 },
+          { label: '16-30 СЃСѓС‚РѕРє', price: 3100 },
+          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 2900 }
         ])
       },
       {
@@ -377,22 +421,22 @@ async function ensureDefaultData() {
         year: 2020,
         pricePerDay: 8000,
         mileage: 17000,
-        fuelType: 'Бензин',
-        transmission: 'АКПП',
-        driveType: 'Передний',
+        fuelType: 'Р‘РµРЅР·РёРЅ',
+        transmission: 'РђРљРџРџ',
+        driveType: 'РџРµСЂРµРґРЅРёР№',
         seats: 5,
-        bodyType: 'Седан',
-        city: 'Казань',
-        description: 'Стильный бизнес-седан для города и трассы. Подходит для деловых поездок и аренды на каждый день.',
-        features: 'Климат-контроль,Подогрев сидений,CarPlay,Камера заднего вида',
+        bodyType: 'РЎРµРґР°РЅ',
+        city: 'РљР°Р·Р°РЅСЊ',
+        description: 'РЎС‚РёР»СЊРЅС‹Р№ Р±РёР·РЅРµСЃ-СЃРµРґР°РЅ РґР»СЏ РіРѕСЂРѕРґР° Рё С‚СЂР°СЃСЃС‹. РџРѕРґС…РѕРґРёС‚ РґР»СЏ РґРµР»РѕРІС‹С… РїРѕРµР·РґРѕРє Рё Р°СЂРµРЅРґС‹ РЅР° РєР°Р¶РґС‹Р№ РґРµРЅСЊ.',
+        features: 'РљР»РёРјР°С‚-РєРѕРЅС‚СЂРѕР»СЊ,РџРѕРґРѕРіСЂРµРІ СЃРёРґРµРЅРёР№,CarPlay,РљР°РјРµСЂР° Р·Р°РґРЅРµРіРѕ РІРёРґР°',
         imageUrl: '/image/kia-k5.png',
         galleryJson: JSON.stringify(['/image/kia-k5.png', '/image/kia-k5-2.png', '/image/kia-cabin.png']),
-        specsJson: JSON.stringify({ category: 'Комфорт', power: '150 л.с.', engineVolume: '2.0 литра', color: 'Черный', minRentPeriod: '1 сутки' }),
+        specsJson: JSON.stringify({ category: 'РљРѕРјС„РѕСЂС‚', power: '150 Р».СЃ.', engineVolume: '2.0 Р»РёС‚СЂР°', color: 'Р§РµСЂРЅС‹Р№', minRentPeriod: '1 СЃСѓС‚РєРё' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 суток', price: 8000 },
-          { label: '9-15 суток', price: 7500 },
-          { label: '16-30 суток', price: 7000 },
-          { label: 'от 31 суток', price: 6500 }
+          { label: '1-8 СЃСѓС‚РѕРє', price: 8000 },
+          { label: '9-15 СЃСѓС‚РѕРє', price: 7500 },
+          { label: '16-30 СЃСѓС‚РѕРє', price: 7000 },
+          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 6500 }
         ])
       },
       {
@@ -402,22 +446,22 @@ async function ensureDefaultData() {
         year: 2023,
         pricePerDay: 7000,
         mileage: 12000,
-        fuelType: 'Бензин',
-        transmission: 'АКПП',
-        driveType: 'Полный',
+        fuelType: 'Р‘РµРЅР·РёРЅ',
+        transmission: 'РђРљРџРџ',
+        driveType: 'РџРѕР»РЅС‹Р№',
         seats: 5,
-        bodyType: 'Кроссовер',
-        city: 'Москва',
-        description: 'Практичный кроссовер для поездок по городу и за его пределы.',
-        features: 'Полный привод,Круиз-контроль,Большой багажник',
+        bodyType: 'РљСЂРѕСЃСЃРѕРІРµСЂ',
+        city: 'РњРѕСЃРєРІР°',
+        description: 'РџСЂР°РєС‚РёС‡РЅС‹Р№ РєСЂРѕСЃСЃРѕРІРµСЂ РґР»СЏ РїРѕРµР·РґРѕРє РїРѕ РіРѕСЂРѕРґСѓ Рё Р·Р° РµРіРѕ РїСЂРµРґРµР»С‹.',
+        features: 'РџРѕР»РЅС‹Р№ РїСЂРёРІРѕРґ,РљСЂСѓРёР·-РєРѕРЅС‚СЂРѕР»СЊ,Р‘РѕР»СЊС€РѕР№ Р±Р°РіР°Р¶РЅРёРє',
         imageUrl: '/image/toyota-rav4.png',
         galleryJson: JSON.stringify(['/image/toyota-rav4.png']),
-        specsJson: JSON.stringify({ category: 'SUV', power: '199 л.с.', engineVolume: '2.5 литра', color: 'Серый' }),
+        specsJson: JSON.stringify({ category: 'SUV', power: '199 Р».СЃ.', engineVolume: '2.5 Р»РёС‚СЂР°', color: 'РЎРµСЂС‹Р№' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 суток', price: 7000 },
-          { label: '9-15 суток', price: 6700 },
-          { label: '16-30 суток', price: 6300 },
-          { label: 'от 31 суток', price: 5900 }
+          { label: '1-8 СЃСѓС‚РѕРє', price: 7000 },
+          { label: '9-15 СЃСѓС‚РѕРє', price: 6700 },
+          { label: '16-30 СЃСѓС‚РѕРє', price: 6300 },
+          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 5900 }
         ])
       }
     ];
@@ -440,145 +484,170 @@ async function ensureDefaultData() {
 
 async function initDb() {
   await dbRun(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    login TEXT UNIQUE NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    login VARCHAR(255) UNIQUE NOT NULL,
     passwordHash TEXT NOT NULL,
-    firstName TEXT NOT NULL,
-    lastName TEXT NOT NULL,
-    middleName TEXT,
-    phone TEXT,
-    email TEXT,
-    birthDate TEXT,
-    avatarUrl TEXT DEFAULT '/image/avatar.png',
-    role TEXT DEFAULT 'user',
-    createdAt TEXT NOT NULL
-  )`);
+    firstName VARCHAR(255) NOT NULL,
+    lastName VARCHAR(255) NOT NULL,
+    middleName VARCHAR(255),
+    phone VARCHAR(100),
+    email VARCHAR(255),
+    birthDate VARCHAR(50),
+    avatarUrl VARCHAR(255) DEFAULT '/image/avatar.png',
+    role VARCHAR(50) DEFAULT 'user',
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS consultations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    city TEXT NOT NULL,
-    name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    createdAt TEXT NOT NULL
-  )`);
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    city VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(100) NOT NULL,
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    carId TEXT NOT NULL,
-    userId INTEGER,
-    authorName TEXT NOT NULL,
-    rating INTEGER NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    carId INT NOT NULL,
+    userId INT,
+    authorName VARCHAR(255) NOT NULL,
+    rating INT NOT NULL,
     text TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    createdAt TEXT NOT NULL,
-    publishedAt TEXT,
-    moderatedAt TEXT,
-    moderatorId INTEGER,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    createdAt DATETIME NOT NULL,
+    publishedAt DATETIME,
+    moderatedAt DATETIME,
+    moderatorId INT,
     FOREIGN KEY (userId) REFERENCES users(id),
     FOREIGN KEY (moderatorId) REFERENCES users(id)
-  )`);
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS cars (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    brand TEXT NOT NULL,
-    model TEXT NOT NULL,
-    year INTEGER,
-    pricePerDay INTEGER NOT NULL,
-    mileage INTEGER,
-    fuelType TEXT,
-    transmission TEXT,
-    driveType TEXT,
-    seats INTEGER,
-    bodyType TEXT,
-    city TEXT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    brand VARCHAR(255) NOT NULL,
+    model VARCHAR(255) NOT NULL,
+    year INT,
+    pricePerDay INT NOT NULL,
+    mileage INT,
+    fuelType VARCHAR(255),
+    transmission VARCHAR(255),
+    driveType VARCHAR(255),
+    seats INT,
+    bodyType VARCHAR(255),
+    city VARCHAR(255),
     description TEXT,
     features TEXT,
-    imageUrl TEXT,
-    status TEXT DEFAULT 'available',
-    createdAt TEXT NOT NULL
-  )`);
+    imageUrl VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'available',
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS bookings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    carId INTEGER NOT NULL,
-    userId INTEGER,
-    customerName TEXT NOT NULL,
-    customerEmail TEXT NOT NULL,
-    customerPhone TEXT NOT NULL,
-    startDate TEXT NOT NULL,
-    endDate TEXT NOT NULL,
-    daysCount INTEGER NOT NULL,
-    totalPrice INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    paymentToken TEXT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    carId INT NOT NULL,
+    userId INT,
+    customerName VARCHAR(255) NOT NULL,
+    customerEmail VARCHAR(255) NOT NULL,
+    customerPhone VARCHAR(100) NOT NULL,
+    startDate VARCHAR(50) NOT NULL,
+    endDate VARCHAR(50) NOT NULL,
+    daysCount INT NOT NULL,
+    totalPrice INT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    paymentToken VARCHAR(255),
     paymentUrl TEXT,
     paymentSmsText TEXT,
-    paymentSentAt TEXT,
-    paidAt TEXT,
+    paymentSentAt DATETIME,
+    paidAt DATETIME,
     adminComment TEXT,
-    createdAt TEXT NOT NULL,
-    updatedAt TEXT NOT NULL,
+    createdAt DATETIME NOT NULL,
+    updatedAt DATETIME NOT NULL,
     selectedOptionsJson TEXT,
-    promoCode TEXT,
-    discountPercent INTEGER DEFAULT 0,
-    discountAmount INTEGER DEFAULT 0,
-    basePrice INTEGER DEFAULT 0,
-    optionsPrice INTEGER DEFAULT 0,
-    depositAmount INTEGER DEFAULT 0,
+    promoCode VARCHAR(255),
+    discountPercent INT DEFAULT 0,
+    discountAmount INT DEFAULT 0,
+    basePrice INT DEFAULT 0,
+    optionsPrice INT DEFAULT 0,
+    depositAmount INT DEFAULT 0,
     FOREIGN KEY (carId) REFERENCES cars(id),
     FOREIGN KEY (userId) REFERENCES users(id)
-  )`);
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS promo_codes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    code TEXT UNIQUE NOT NULL,
-    title TEXT,
-    discountPercent INTEGER NOT NULL,
-    isActive INTEGER NOT NULL DEFAULT 1,
-    createdAt TEXT NOT NULL,
-    expiresAt TEXT
-  )`);
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(255) UNIQUE NOT NULL,
+    title VARCHAR(255),
+    discountPercent INT NOT NULL,
+    isActive TINYINT(1) NOT NULL DEFAULT 1,
+    createdAt DATETIME NOT NULL,
+    expiresAt VARCHAR(50)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  await dbRun(`CREATE TABLE IF NOT EXISTS car_promotions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    carId INT NOT NULL,
+    promoPrice INT NOT NULL,
+    title VARCHAR(255),
+    startDate DATE NOT NULL,
+    endDate DATE NOT NULL,
+    isActive TINYINT(1) NOT NULL DEFAULT 1,
+    createdAt DATETIME NOT NULL,
+    updatedAt DATETIME NOT NULL,
+    FOREIGN KEY (carId) REFERENCES cars(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS extra_options (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    code TEXT UNIQUE NOT NULL,
-    title TEXT NOT NULL,
-    price INTEGER NOT NULL DEFAULT 0,
-    chargeType TEXT NOT NULL DEFAULT 'once',
-    isActive INTEGER NOT NULL DEFAULT 1,
-    sortOrder INTEGER NOT NULL DEFAULT 0,
-    createdAt TEXT NOT NULL
-  )`);
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(255) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    price INT NOT NULL DEFAULT 0,
+    chargeType VARCHAR(50) NOT NULL DEFAULT 'once',
+    isActive TINYINT(1) NOT NULL DEFAULT 1,
+    sortOrder INT NOT NULL DEFAULT 0,
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS site_content (
-    key TEXT PRIMARY KEY,
+    \`key\` VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,
-    updatedAt TEXT NOT NULL
-  )`);
+    updatedAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    channel TEXT NOT NULL,
-    recipient TEXT NOT NULL,
-    subject TEXT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    channel VARCHAR(255) NOT NULL,
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
     content TEXT,
-    status TEXT NOT NULL,
-    externalId TEXT,
-    createdAt TEXT NOT NULL
-  )`);
+    status VARCHAR(50) NOT NULL,
+    externalId VARCHAR(255),
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  await dbRun(`CREATE TABLE IF NOT EXISTS user_promos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    userId INT NOT NULL,
+    promoId INT NOT NULL,
+    assignedAt DATETIME NOT NULL,
+    expiresAt VARCHAR(50),
+    usedAt DATETIME,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (promoId) REFERENCES promo_codes(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_promo (userId, promoId)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await dbRun(`CREATE TABLE IF NOT EXISTS activity_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    action TEXT NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    action VARCHAR(255) NOT NULL,
     metaJson TEXT,
-    createdAt TEXT NOT NULL
-  )`);
+    createdAt DATETIME NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await ensureColumn('cars', 'galleryJson', 'TEXT');
   await ensureColumn('cars', 'specsJson', 'TEXT');
   await ensureColumn('cars', 'priceTiersJson', 'TEXT');
-  await ensureColumn('users', 'avatarUrl', "TEXT DEFAULT '/image/avatar.png'");
+  await ensureColumn('users', 'avatarUrl', "VARCHAR(255) DEFAULT '/image/avatar.png'");
 
   await ensureDefaultData();
 }
@@ -587,28 +656,28 @@ function generateToken(user) {
   return jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
 }
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Нет заголовка' });
+  if (!authHeader) return res.status(401).json({ error: 'РќРµС‚ Р·Р°РіРѕР»РѕРІРєР°' });
   const [type, token] = authHeader.split(' ');
-  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'Неверный формат' });
+  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚' });
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    db.get('SELECT id, role FROM users WHERE id = ?', [payload.id], (err, row) => {
-      if (err || !row) return res.status(401).json({ error: 'Пользователь не найден' });
-      req.userId = row.id;
-      req.userRole = row.role;
-      next();
-    });
+    const row = await dbGet('SELECT id, role FROM users WHERE id = ?', [payload.id]);
+    if (!row) return res.status(401).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    req.userId = row.id;
+    req.userRole = row.role;
+    req.isAdmin = row.role === 'admin';
+    return next();
   } catch (error) {
-    return res.status(401).json({ error: 'Недействительный токен' });
+    return res.status(401).json({ error: 'РќРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅС‹Р№ С‚РѕРєРµРЅ' });
   }
 }
 
 function adminOnly(req, res, next) {
   if (req.userRole !== 'admin') {
-    return res.status(403).json({ error: 'Доступ только для администраторов' });
+    return res.status(403).json({ error: 'Р”РѕСЃС‚СѓРї С‚РѕР»СЊРєРѕ РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ' });
   }
   return next();
 }
@@ -628,15 +697,15 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter(req, file, cb) {
     if (file.mimetype.startsWith('image/')) return cb(null, true);
-    return cb(new Error('Только изображения'));
+    return cb(new Error('РўРѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ'));
   }
 });
 
 async function getSiteContentMap() {
-  const rows = await dbAll('SELECT key, value FROM site_content');
+  const rows = await dbAll('SELECT `key` AS contentKey, value FROM site_content');
   const content = {};
   rows.forEach((row) => {
-    content[row.key] = row.value;
+    content[row.contentKey] = row.value;
   });
   return content;
 }
@@ -662,20 +731,21 @@ async function getPromoByCode(code) {
     `SELECT * FROM promo_codes
      WHERE UPPER(code) = UPPER(?) AND isActive = 1
      AND (expiresAt IS NULL OR expiresAt = '' OR expiresAt >= ?)`,
-    [code.trim(), new Date().toISOString()]
+    [code.trim(), getMySQLDateTime()]
   );
   return row;
 }
 
 async function carIsAvailable(carId, startDate, endDate, excludeBookingId = null) {
-  const params = [carId, startDate, endDate, ...bookingStatusesAffectAvailability()];
+  const statuses = bookingStatusesAffectAvailability();
+  const params = [carId, endDate, startDate, ...statuses];
   let sql = `
     SELECT COUNT(*) as total
     FROM bookings
     WHERE carId = ?
       AND startDate < ?
       AND endDate > ?
-      AND status IN (${bookingStatusesAffectAvailability().map(() => '?').join(', ')})
+      AND status IN (${statuses.map(() => '?').join(', ')})
   `;
 
   if (excludeBookingId) {
@@ -684,7 +754,8 @@ async function carIsAvailable(carId, startDate, endDate, excludeBookingId = null
   }
 
   const row = await dbGet(sql, params);
-  return !row || !row.total;
+  const totalBookings = Number(row?.total || 0);
+  return totalBookings === 0;
 }
 
 async function calculateBookingPrice({ car, startDate, endDate, selectedOptionIds, promoCode }) {
@@ -730,16 +801,16 @@ app.post('/api/register', async (req, res) => {
   try {
     const { login, password, passwordConfirm, firstName, lastName, middleName, phone, email, birthDate } = req.body;
     if (!login || !password || !passwordConfirm || !firstName || !lastName || !email || !birthDate) {
-      return res.status(400).json({ error: 'Заполнены не все обязательные поля' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРµРЅС‹ РЅРµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
     }
     if (password !== passwordConfirm) {
-      return res.status(400).json({ error: 'Пароли не совпадают' });
+      return res.status(400).json({ error: 'РџР°СЂРѕР»Рё РЅРµ СЃРѕРІРїР°РґР°СЋС‚' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' });
+      return res.status(400).json({ error: 'РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ' });
     }
 
-    const createdAt = new Date().toISOString();
+    const createdAt = getMySQLDateTime();
     const result = await dbRun(
       `INSERT INTO users (login, passwordHash, firstName, lastName, middleName, phone, email, birthDate, role, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', ?)`,
@@ -750,10 +821,10 @@ app.post('/api/register', async (req, res) => {
     return res.json({ token: generateToken(user), user: mapUserRow(user) });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'Пользователь с таким логином уже существует' });
+      return res.status(400).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј Р»РѕРіРёРЅРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
     }
     console.error('Register error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера при регистрации' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё СЂРµРіРёСЃС‚СЂР°С†РёРё' });
   }
 });
 
@@ -761,29 +832,29 @@ app.post('/api/login', async (req, res) => {
   try {
     const { login, password } = req.body;
     if (!login || !password) {
-      return res.status(400).json({ error: 'Введите логин и пароль' });
+      return res.status(400).json({ error: 'Р’РІРµРґРёС‚Рµ Р»РѕРіРёРЅ Рё РїР°СЂРѕР»СЊ' });
     }
     const userRow = await dbGet('SELECT * FROM users WHERE login = ?', [login]);
     if (!userRow || !bcrypt.compareSync(password, userRow.passwordHash)) {
-      return res.status(401).json({ error: 'Неверный логин или пароль' });
+      return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ' });
     }
     const user = mapUserRow(userRow);
     await logActivity('user_login', { userId: user.id });
     return res.json({ token: generateToken(user), user });
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера при входе' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё РІС…РѕРґРµ' });
   }
 });
 
 app.get('/api/me', authMiddleware, async (req, res) => {
   try {
     const row = await dbGet('SELECT * FROM users WHERE id = ?', [req.userId]);
-    if (!row) return res.status(404).json({ error: 'Пользователь не найден' });
+    if (!row) return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
     return res.json({ user: mapUserRow(row) });
   } catch (error) {
     console.error('Me error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
   }
 });
 
@@ -798,7 +869,7 @@ app.put('/api/me', authMiddleware, upload.single('avatar'), async (req, res) => 
     const phone = String(req.body.phone ?? current.phone ?? '').trim() || null;
     const email = String(req.body.email ?? current.email ?? '').trim();
     const birthDate = String(req.body.birthDate ?? current.birthDate ?? '').trim() || null;
-    const avatarUrl = req.file ? `/image/${req.file.filename}` : (current.avatarUrl || '/image/avatar.png');
+    const avatarUrl = req.file ? `/image/${req.file.filename}` : (current.avatarUrl || '/image/acc.jpeg');
 
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: 'First name, last name and email are required' });
@@ -816,7 +887,7 @@ app.put('/api/me', authMiddleware, upload.single('avatar'), async (req, res) => 
     return res.json({ success: true, user: mapUserRow(updated) });
   } catch (error) {
     console.error('Profile update error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить профиль' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РїСЂРѕС„РёР»СЊ' });
   }
 });
 
@@ -825,7 +896,7 @@ app.get('/api/site-content', async (req, res) => {
     return res.json({ content: await getSiteContentMap() });
   } catch (error) {
     console.error('Site content error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить контент сайта' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
   }
 });
 
@@ -833,9 +904,9 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { city, name, phone } = req.body;
     if (!city || !name || !phone) {
-      return res.status(400).json({ error: 'Заполните все поля' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ' });
     }
-    const createdAt = new Date().toISOString();
+    const createdAt = getMySQLDateTime();
     const result = await dbRun(
       'INSERT INTO consultations (city, name, phone, createdAt) VALUES (?, ?, ?, ?)',
       [city, name, phone, createdAt]
@@ -844,14 +915,72 @@ app.post('/api/consultation', async (req, res) => {
     await addNotification({
       channel: 'admin',
       recipient: 'admin',
-      subject: 'Новая заявка на консультацию',
+      subject: 'РќРѕРІР°СЏ Р·Р°СЏРІРєР° РЅР° РєРѕРЅСЃСѓР»СЊС‚Р°С†РёСЋ',
       content: `${name}, ${phone}, ${city}`,
       status: 'created'
     });
-    return res.json({ success: true, message: 'Заявка отправлена!' });
+    return res.json({ success: true, message: 'Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР°!' });
   } catch (error) {
     console.error('Consultation error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+  }
+});
+
+app.post('/api/ai-support', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'РЎРѕРѕР±С‰РµРЅРёРµ РЅРµ РїРµСЂРµРґР°РЅРѕ' });
+    }
+
+    const normalizedMessage = String(message)
+      .toLowerCase()
+      .replace(/[^пїЅ-пїЅпїЅa-z0-9\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const patterns = {
+      greeting: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i,
+      price: /\b(?:пїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ[пїЅпїЅпїЅ]?)\b/i,
+      booking: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅ[пїЅпїЅ]|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ[пїЅпїЅпїЅ]?)\b/i,
+      delivery: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
+      insurance: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
+      cancellation: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
+      documents: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
+      fuel: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i,
+      accident: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
+      promo: /\b(?:пїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i
+    };
+
+    let reply = '';
+
+    if (patterns.greeting.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅ! пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ Carzen. пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?';
+    } else if (patterns.price.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+    } else if (patterns.booking.test(normalizedMessage)) {
+      reply = '1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n2. пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ\n3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ\n4. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n5. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+    } else if (patterns.delivery.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ  пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅ. пїЅпїЅпїЅпїЅпїЅ, 42\nпїЅ  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+    } else if (patterns.insurance.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅ пїЅ 500 /пїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 1000 \nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 200 /пїЅпїЅпїЅпїЅ';
+    } else if (patterns.cancellation.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅ 24 пїЅпїЅпїЅпїЅпїЅ пїЅ 100% пїЅпїЅпїЅпїЅпїЅпїЅпїЅ\nпїЅ 6-24 пїЅпїЅпїЅпїЅ пїЅ 50% пїЅпїЅпїЅпїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅ 6 пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+    } else if (patterns.documents.test(normalizedMessage)) {
+      reply = 'пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ \nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ. B)\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 21 пїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ';
+    } else if (patterns.fuel.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ +200 \n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!';
+    } else if (patterns.accident.test(normalizedMessage)) {
+      reply = 'пїЅпїЅ пїЅ:\n1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n2. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ: +79123420973\n3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ \n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ';
+    } else if (patterns.promo.test(normalizedMessage)) {
+      reply = 'пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.';
+    } else {
+      reply = 'пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+    }
+return res.json({ success: true, reply });
+  } catch (error) {
+    console.error('AI support error:', error);
+    return res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ Р·Р°РїСЂРѕСЃР°' });
   }
 });
 
@@ -867,7 +996,7 @@ app.get('/api/cars/:carId/reviews', async (req, res) => {
     return res.json({ reviews: rows });
   } catch (error) {
     console.error('Get reviews error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ РѕС‚Р·С‹РІРѕРІ' });
   }
 });
 
@@ -879,16 +1008,16 @@ app.post('/api/reviews', async (req, res) => {
     const normalizedRating = Number(rating);
 
     if (!carId || !normalizedName || !normalizedText || !Number.isInteger(normalizedRating)) {
-      return res.status(400).json({ error: 'Заполните все поля формы отзыва' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ С„РѕСЂРјС‹ РѕС‚Р·С‹РІР°' });
     }
     if (normalizedName.length < 2 || normalizedName.length > 60) {
-      return res.status(400).json({ error: 'Имя должно содержать от 2 до 60 символов' });
+      return res.status(400).json({ error: 'РРјСЏ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 2 РґРѕ 60 СЃРёРјРІРѕР»РѕРІ' });
     }
     if (normalizedText.length < 20 || normalizedText.length > 1000) {
-      return res.status(400).json({ error: 'Текст отзыва должен содержать от 20 до 1000 символов' });
+      return res.status(400).json({ error: 'РўРµРєСЃС‚ РѕС‚Р·С‹РІР° РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 20 РґРѕ 1000 СЃРёРјРІРѕР»РѕРІ' });
     }
     if (normalizedRating < 1 || normalizedRating > 5) {
-      return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
+      return res.status(400).json({ error: 'РћС†РµРЅРєР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 5' });
     }
 
     const authHeader = req.headers.authorization;
@@ -906,13 +1035,13 @@ app.post('/api/reviews', async (req, res) => {
     const result = await dbRun(
       `INSERT INTO reviews (carId, userId, authorName, rating, text, createdAt)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [String(carId), userId, normalizedName, normalizedRating, normalizedText, new Date().toISOString()]
+      [String(carId), userId, normalizedName, normalizedRating, normalizedText, getMySQLDateTime()]
     );
     await logActivity('review_create', { reviewId: result.lastID, carId });
-    return res.status(201).json({ success: true, message: 'Отзыв отправлен на модерацию', reviewId: result.lastID });
+    return res.status(201).json({ success: true, message: 'РћС‚Р·С‹РІ РѕС‚РїСЂР°РІР»РµРЅ РЅР° РјРѕРґРµСЂР°С†РёСЋ', reviewId: result.lastID });
   } catch (error) {
     console.error('Create review error:', error);
-    return res.status(500).json({ error: 'Не удалось отправить отзыв' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚Р·С‹РІ' });
   }
 });
 
@@ -924,7 +1053,7 @@ app.get('/api/extra-options', async (req, res) => {
     return res.json({ options: rows });
   } catch (error) {
     console.error('Extra options error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить дополнительные опции' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РѕРїС†РёРё' });
   }
 });
 
@@ -932,7 +1061,7 @@ app.get('/api/promo-codes/validate', async (req, res) => {
   try {
     const promo = await getPromoByCode(req.query.code);
     if (!promo) {
-      return res.status(404).json({ valid: false, error: 'Промокод не найден или истёк' });
+      return res.status(404).json({ valid: false, error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РёСЃС‚С‘Рє' });
     }
     return res.json({
       valid: true,
@@ -944,7 +1073,7 @@ app.get('/api/promo-codes/validate', async (req, res) => {
     });
   } catch (error) {
     console.error('Promo validation error:', error);
-    return res.status(500).json({ error: 'Не удалось проверить промокод' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
   }
 });
 
@@ -1016,18 +1145,39 @@ app.get('/api/cars', async (req, res) => {
     return res.json({ cars: rows.map(parseCarRow) });
   } catch (error) {
     console.error('Cars list error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
   }
 });
 
 app.get('/api/cars/:id', async (req, res) => {
   try {
     const row = await dbGet('SELECT * FROM cars WHERE id = ?', [req.params.id]);
-    if (!row) return res.status(404).json({ error: 'Авто не найдено' });
-    return res.json({ car: parseCarRow(row) });
+    if (!row) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    const car = parseCarRow(row);
+    const promotion = await dbGet(
+      `SELECT id, promoPrice, title, startDate, endDate
+       FROM car_promotions
+       WHERE carId = ?
+         AND isActive = 1
+         AND startDate <= CURRENT_DATE()
+         AND endDate >= CURRENT_DATE()
+       ORDER BY startDate DESC
+       LIMIT 1`,
+      [req.params.id]
+    );
+    if (promotion) {
+      car.currentPromotion = {
+        id: promotion.id,
+        promoPrice: promotion.promoPrice,
+        title: promotion.title,
+        startDate: promotion.startDate,
+        endDate: promotion.endDate
+      };
+    }
+    return res.json({ car });
   } catch (error) {
     console.error('Car get error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
   }
 });
 
@@ -1035,15 +1185,15 @@ app.get('/api/cars/:id/availability', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     if (!isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'Некорректный диапазон дат' });
+      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РґРёР°РїР°Р·РѕРЅ РґР°С‚' });
     }
     const car = await dbGet('SELECT id, title FROM cars WHERE id = ?', [req.params.id]);
-    if (!car) return res.status(404).json({ error: 'Авто не найдено' });
+    if (!car) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
     const available = await carIsAvailable(car.id, startDate, endDate);
     return res.json({ available, car });
   } catch (error) {
     console.error('Availability error:', error);
-    return res.status(500).json({ error: 'Не удалось проверить доступность' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ' });
   }
 });
 
@@ -1073,22 +1223,22 @@ app.post('/api/bookings', async (req, res) => {
     } = req.body;
 
     if (!carId || !customerName || !customerEmail || !customerPhone || !isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'Заполните обязательные поля формы бронирования' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ С„РѕСЂРјС‹ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
     }
 
     const daysCount = daysBetween(startDate, endDate);
     if (daysCount < 1) {
-      return res.status(400).json({ error: 'Минимальный срок аренды - 1 сутки' });
+      return res.status(400).json({ error: 'РњРёРЅРёРјР°Р»СЊРЅС‹Р№ СЃСЂРѕРє Р°СЂРµРЅРґС‹ - 1 СЃСѓС‚РєРё' });
     }
 
     const car = await dbGet('SELECT * FROM cars WHERE id = ? AND status = ?', [carId, 'available']);
     if (!car) {
-      return res.status(404).json({ error: 'Автомобиль не найден или недоступен' });
+      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РЅРµРґРѕСЃС‚СѓРїРµРЅ' });
     }
 
     const available = await carIsAvailable(carId, startDate, endDate);
     if (!available) {
-      return res.status(409).json({ error: 'Автомобиль уже занят на выбранные даты' });
+      return res.status(409).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓР¶Рµ Р·Р°РЅСЏС‚ РЅР° РІС‹Р±СЂР°РЅРЅС‹Рµ РґР°С‚С‹' });
     }
 
     const optionIds = Array.isArray(selectedOptionIds)
@@ -1104,7 +1254,7 @@ app.post('/api/bookings', async (req, res) => {
 
     const paymentToken = crypto.randomBytes(20).toString('hex');
     const paymentUrl = `/payment/${paymentToken}`;
-    const now = new Date().toISOString();
+    const now = getMySQLDateTime();
 
     const result = await dbRun(
       `INSERT INTO bookings (
@@ -1140,14 +1290,14 @@ app.post('/api/bookings', async (req, res) => {
     await addNotification({
       channel: 'admin',
       recipient: 'admin',
-      subject: 'Новая заявка на бронирование',
+      subject: 'РќРѕРІР°СЏ Р·Р°СЏРІРєР° РЅР° Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ',
       content: `${customerName} | ${customerPhone} | ${customerEmail} | ${startDate} - ${endDate}`,
       status: 'created'
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Заявка на бронирование принята и отправлена администратору',
+      message: 'Р—Р°СЏРІРєР° РЅР° Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїСЂРёРЅСЏС‚Р° Рё РѕС‚РїСЂР°РІР»РµРЅР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ',
       booking: {
         id: result.lastID,
         status: 'pending',
@@ -1160,31 +1310,31 @@ app.post('/api/bookings', async (req, res) => {
     });
   } catch (error) {
     console.error('Booking create error:', error);
-    return res.status(500).json({ error: 'Не удалось создать бронирование' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
   }
 });
 
 app.get('/api/bookings/pay/:token', async (req, res) => {
   try {
     const booking = await getBookingByPaymentToken(req.params.token);
-    if (!booking) return res.status(404).json({ error: 'Ссылка на оплату не найдена' });
+    if (!booking) return res.status(404).json({ error: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РЅРµ РЅР°Р№РґРµРЅР°' });
     const car = await dbGet('SELECT id, title, imageUrl FROM cars WHERE id = ?', [booking.carId]);
     return res.json({ booking: { ...booking, car } });
   } catch (error) {
     console.error('Payment info error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить оплату' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕРїР»Р°С‚Сѓ' });
   }
 });
 
 app.post('/api/bookings/pay/:token', async (req, res) => {
   try {
     const booking = await getBookingByPaymentToken(req.params.token);
-    if (!booking) return res.status(404).json({ error: 'Ссылка на оплату не найдена' });
+    if (!booking) return res.status(404).json({ error: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РЅРµ РЅР°Р№РґРµРЅР°' });
     if (booking.status === 'paid') {
-      return res.json({ success: true, message: 'Бронирование уже оплачено' });
+      return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СѓР¶Рµ РѕРїР»Р°С‡РµРЅРѕ' });
     }
 
-    const updatedAt = new Date().toISOString();
+    const updatedAt = getMySQLDateTime();
     await dbRun(
       `UPDATE bookings SET status = 'paid', paidAt = ?, updatedAt = ? WHERE id = ?`,
       [updatedAt, updatedAt, booking.id]
@@ -1195,12 +1345,12 @@ app.post('/api/bookings/pay/:token', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Оплата прошла успешно. Подтверждение бронирования подготовлено для отправки на почту.',
+      message: 'РћРїР»Р°С‚Р° РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ. РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ РїРѕРґРіРѕС‚РѕРІР»РµРЅРѕ РґР»СЏ РѕС‚РїСЂР°РІРєРё РЅР° РїРѕС‡С‚Сѓ.',
       emailPreview
     });
   } catch (error) {
     console.error('Booking pay error:', error);
-    return res.status(500).json({ error: 'Ошибка оплаты' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° РѕРїР»Р°С‚С‹' });
   }
 });
 
@@ -1210,8 +1360,8 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
       dbGet('SELECT COUNT(*) as total FROM users'),
       dbGet('SELECT COUNT(*) as total FROM cars'),
       dbGet(`SELECT COUNT(*) as total FROM bookings WHERE status IN ('payment_link_sent', 'paid')`),
-      dbGet(`SELECT COUNT(*) as total FROM bookings WHERE date(createdAt) = date('now', 'localtime')`),
-      dbGet(`SELECT COALESCE(SUM(totalPrice), 0) as total FROM bookings WHERE status = 'paid' AND strftime('%Y-%m', paidAt) = strftime('%Y-%m', 'now', 'localtime')`),
+      dbGet(`SELECT COUNT(*) as total FROM bookings WHERE DATE(createdAt) = CURRENT_DATE()`),
+      dbGet(`SELECT COALESCE(SUM(totalPrice), 0) as total FROM bookings WHERE status = 'paid' AND DATE_FORMAT(paidAt, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')`),
       dbGet('SELECT COUNT(*) as total FROM bookings')
     ]);
 
@@ -1235,7 +1385,7 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error('Stats error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить статистику' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ' });
   }
 });
 
@@ -1248,7 +1398,7 @@ app.get('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ users: rows });
   } catch (error) {
     console.error('Admin users error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
   }
 });
 
@@ -1256,12 +1406,12 @@ app.post('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { login, password, firstName, lastName, middleName, phone, email, birthDate, role = 'user' } = req.body;
     if (!login || !password || !firstName || !lastName || !email) {
-      return res.status(400).json({ error: 'Заполните обязательные поля' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' });
+      return res.status(400).json({ error: 'РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ' });
     }
-    const createdAt = new Date().toISOString();
+    const createdAt = getMySQLDateTime();
     const result = await dbRun(
       `INSERT INTO users (login, passwordHash, firstName, lastName, middleName, phone, email, birthDate, role, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1271,10 +1421,10 @@ app.post('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
     return res.status(201).json({ success: true, user: { id: result.lastID, login, firstName, lastName, email, role, createdAt } });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'Пользователь с таким логином уже существует' });
+      return res.status(400).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј Р»РѕРіРёРЅРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
     }
     console.error('Admin create user error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
   }
 });
 
@@ -1283,7 +1433,7 @@ app.put('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) => {
     const userId = Number(req.params.id);
     const { firstName, lastName, middleName, phone, email, birthDate, role } = req.body;
     const current = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
-    if (!current) return res.status(404).json({ error: 'Пользователь не найден' });
+    if (!current) return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
 
     await dbRun(
       `UPDATE users
@@ -1301,10 +1451,10 @@ app.put('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) => {
       ]
     );
     await logActivity('admin_user_update', { adminId: req.userId, userId });
-    return res.json({ success: true, message: 'Пользователь обновлён' });
+    return res.json({ success: true, message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РѕР±РЅРѕРІР»С‘РЅ' });
   } catch (error) {
     console.error('Admin update user error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
   }
 });
 
@@ -1312,17 +1462,17 @@ app.delete('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) =
   try {
     const userId = Number(req.params.id);
     if (userId === req.userId) {
-      return res.status(400).json({ error: 'Нельзя удалить самого себя' });
+      return res.status(400).json({ error: 'РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ СЃР°РјРѕРіРѕ СЃРµР±СЏ' });
     }
     const result = await dbRun('DELETE FROM users WHERE id = ?', [userId]);
     if (!result.changes) {
-      return res.status(404).json({ error: 'Пользователь не найден' });
+      return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
     }
     await logActivity('admin_user_delete', { adminId: req.userId, userId });
-    return res.json({ success: true, message: 'Пользователь удалён' });
+    return res.json({ success: true, message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓРґР°Р»С‘РЅ' });
   } catch (error) {
     console.error('Admin delete user error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
   }
 });
 
@@ -1332,7 +1482,7 @@ app.get('/api/admin/consultations', authMiddleware, adminOnly, async (req, res) 
     return res.json({ consultations: rows });
   } catch (error) {
     console.error('Admin consultations error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
   }
 });
 
@@ -1347,7 +1497,7 @@ app.get('/api/admin/reviews', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ reviews: rows });
   } catch (error) {
     console.error('Admin reviews error:', error);
-    return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ РѕС‚Р·С‹РІРѕРІ' });
   }
 });
 
@@ -1356,19 +1506,19 @@ app.patch('/api/admin/reviews/:id', authMiddleware, adminOnly, async (req, res) 
     const reviewId = Number(req.params.id);
     const status = req.body.status;
     if (!['published', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'Некорректный статус модерации' });
+      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ СЃС‚Р°С‚СѓСЃ РјРѕРґРµСЂР°С†РёРё' });
     }
-    const now = new Date().toISOString();
+    const now = getMySQLDateTime();
     const result = await dbRun(
       `UPDATE reviews SET status = ?, moderatedAt = ?, publishedAt = ?, moderatorId = ? WHERE id = ?`,
       [status, now, status === 'published' ? now : null, req.userId, reviewId]
     );
-    if (!result.changes) return res.status(404).json({ error: 'Отзыв не найден' });
+    if (!result.changes) return res.status(404).json({ error: 'РћС‚Р·С‹РІ РЅРµ РЅР°Р№РґРµРЅ' });
     await logActivity('admin_review_moderate', { adminId: req.userId, reviewId, status });
-    return res.json({ success: true, message: 'Статус отзыва обновлён' });
+    return res.json({ success: true, message: 'РЎС‚Р°С‚СѓСЃ РѕС‚Р·С‹РІР° РѕР±РЅРѕРІР»С‘РЅ' });
   } catch (error) {
     console.error('Admin moderate review error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить статус отзыва' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СѓСЃ РѕС‚Р·С‹РІР°' });
   }
 });
 
@@ -1378,25 +1528,199 @@ app.get('/api/admin/cars', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ cars: rows.map(parseCarRow) });
   } catch (error) {
     console.error('Admin cars error:', error);
-    return res.status(500).json({ error: 'Ошибка загрузки автомобилей' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Р°РІС‚РѕРјРѕР±РёР»РµР№' });
   }
 });
 
-app.post('/api/admin/cars', authMiddleware, adminOnly, upload.single('image'), async (req, res) => {
+app.get('/api/admin/car-promotions', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const rows = await dbAll(
+      `SELECT cp.*, c.title AS carTitle, c.brand, c.model, c.pricePerDay, c.imageUrl, c.city, c.status
+       FROM car_promotions cp
+       JOIN cars c ON cp.carId = c.id
+       ORDER BY cp.createdAt DESC`
+    );
+    const promotions = rows.map((row) => ({
+      id: row.id,
+      carId: row.carId,
+      promoPrice: row.promoPrice,
+      title: row.title,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      isActive: Boolean(row.isActive),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      car: {
+        id: row.carId,
+        title: row.carTitle,
+        brand: row.brand,
+        model: row.model,
+        pricePerDay: row.pricePerDay,
+        imageUrl: row.imageUrl,
+        city: row.city,
+        status: row.status
+      }
+    }));
+    return res.json({ promotions });
+  } catch (error) {
+    console.error('Admin car promotions error:', error);
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Р°РєС†РёР№' });
+  }
+});
+
+app.post('/api/admin/car-promotions', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { carId, promoPrice, title, startDate, endDate, isActive } = req.body;
+    if (!carId || !promoPrice || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ Р°РєС†РёРё' });
+    }
+    if (!isValidDateRange(startDate, endDate)) {
+      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїРµСЂРёРѕРґ Р°РєС†РёРё' });
+    }
+    const car = await dbGet('SELECT id FROM cars WHERE id = ?', [carId]);
+    if (!car) {
+      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    }
+    const now = getMySQLDateTime();
+    await dbRun(
+      `INSERT INTO car_promotions (carId, promoPrice, title, startDate, endDate, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [carId, Number(promoPrice), title || null, startDate, endDate, isActive ? 1 : 0, now, now]
+    );
+    await logActivity('admin_car_promotion_create', { adminId: req.userId, carId, promoPrice, startDate, endDate });
+    return res.status(201).json({ success: true, message: 'РђРєС†РёСЏ РЅР° Р°РІС‚РѕРјРѕР±РёР»СЊ СЃРѕР·РґР°РЅР°' });
+  } catch (error) {
+    console.error('Admin create car promotion error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р°РєС†РёСЋ' });
+  }
+});
+
+app.put('/api/admin/car-promotions/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const promoId = Number(req.params.id);
+    const { carId, promoPrice, title, startDate, endDate, isActive } = req.body;
+    if (!carId || !promoPrice || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ Р°РєС†РёРё' });
+    }
+    if (!isValidDateRange(startDate, endDate)) {
+      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїРµСЂРёРѕРґ Р°РєС†РёРё' });
+    }
+    const promo = await dbGet('SELECT * FROM car_promotions WHERE id = ?', [promoId]);
+    if (!promo) {
+      return res.status(404).json({ error: 'РђРєС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+    }
+    const car = await dbGet('SELECT id FROM cars WHERE id = ?', [carId]);
+    if (!car) {
+      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    }
+    const now = getMySQLDateTime();
+    await dbRun(
+      `UPDATE car_promotions
+       SET carId = ?, promoPrice = ?, title = ?, startDate = ?, endDate = ?, isActive = ?, updatedAt = ?
+       WHERE id = ?`,
+      [carId, Number(promoPrice), title || null, startDate, endDate, isActive ? 1 : 0, now, promoId]
+    );
+    await logActivity('admin_car_promotion_update', { adminId: req.userId, promoId, carId, promoPrice, startDate, endDate });
+    return res.json({ success: true, message: 'РђРєС†РёСЏ РѕР±РЅРѕРІР»РµРЅР°' });
+  } catch (error) {
+    console.error('Admin update car promotion error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ Р°РєС†РёСЋ' });
+  }
+});
+
+app.delete('/api/admin/car-promotions/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const promoId = Number(req.params.id);
+    const result = await dbRun('DELETE FROM car_promotions WHERE id = ?', [promoId]);
+    if (!result.changes) return res.status(404).json({ error: 'РђРєС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+    await logActivity('admin_car_promotion_delete', { adminId: req.userId, promoId });
+    return res.json({ success: true, message: 'РђРєС†РёСЏ СѓРґР°Р»РµРЅР°' });
+  } catch (error) {
+    console.error('Admin delete car promotion error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р°РєС†РёСЋ' });
+  }
+});
+
+app.get('/api/stock/promotions', async (req, res) => {
+  try {
+    const rows = await dbAll(
+      `SELECT cp.id, cp.carId, cp.promoPrice, cp.title, cp.startDate, cp.endDate,
+              c.title AS carTitle, c.brand, c.model, c.pricePerDay, c.imageUrl, c.mileage,
+              c.fuelType, c.transmission, c.driveType, c.seats, c.bodyType, c.city
+       FROM car_promotions cp
+       JOIN cars c ON cp.carId = c.id
+       WHERE cp.isActive = 1
+         AND cp.startDate <= CURRENT_DATE()
+         AND cp.endDate >= CURRENT_DATE()
+         AND c.status = 'available'
+       ORDER BY cp.startDate DESC`
+    );
+    const promotions = rows.map((row) => ({
+      id: row.id,
+      carId: row.carId,
+      promoPrice: row.promoPrice,
+      title: row.title,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      car: {
+        id: row.carId,
+        title: row.carTitle,
+        brand: row.brand,
+        model: row.model,
+        pricePerDay: row.pricePerDay,
+        imageUrl: row.imageUrl,
+        mileage: row.mileage,
+        fuelType: row.fuelType,
+        transmission: row.transmission,
+        driveType: row.driveType,
+        seats: row.seats,
+        bodyType: row.bodyType,
+        city: row.city
+      }
+    }));
+    return res.json({ promotions });
+  } catch (error) {
+    console.error('Stock promotions error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°РєС†РёРё' });
+  }
+});
+
+app.post('/api/admin/cars', authMiddleware, adminOnly, upload.fields([
+  { name: 'previewImage', maxCount: 1 },
+  { name: 'galleryImages', maxCount: 10 }
+]), async (req, res) => {
   try {
     const {
       title, brand, model, year, pricePerDay, mileage, fuelType, transmission, driveType,
-      seats, bodyType, city, description, features, galleryJson, specsJson, priceTiersJson, status
+      seats, bodyType, city, description, features, galleryJson, specsJson, priceTiersJson, status,
+      specsText, priceTiersText
     } = req.body;
 
     if (!title || !brand || !model || !pricePerDay) {
-      return res.status(400).json({ error: 'Заполните обязательные поля' });
+      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
     }
 
-    const imageUrl = req.file ? `/image/${req.file.filename}` : '/image/avatar.png';
-    const createdAt = new Date().toISOString();
+    const previewFile = req.files?.previewImage?.[0];
+    const galleryFiles = req.files?.galleryImages || [];
+    const uploadedGallery = galleryFiles.map((file) => `/image/${file.filename}`);
     const gallery = safeJsonParse(galleryJson, []);
-    if (!gallery.length) gallery.unshift(imageUrl);
+
+    // Р”РѕР±Р°РІР»СЏРµРј Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ С„РѕС‚Рѕ РІ РіР°Р»РµСЂРµСЋ
+    if (uploadedGallery.length) {
+      uploadedGallery.forEach((imageUrl) => {
+        if (!gallery.includes(imageUrl)) gallery.push(imageUrl);
+      });
+    }
+
+    // Р•СЃР»Рё Р·Р°РіСЂСѓР¶РµРЅРѕ РїСЂРµРІСЊСЋ РёР·РѕР±СЂР°Р¶РµРЅРёРµ, РґРѕР±Р°РІР»СЏРµРј РµРіРѕ РІ РЅР°С‡Р°Р»Рѕ РіР°Р»РµСЂРµРё
+    const previewImageUrl = previewFile ? `/image/${previewFile.filename}` : null;
+
+    // Preview РѕСЃС‚Р°РµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј РѕСЃРЅРѕРІРЅС‹Рј РёР·РѕР±СЂР°Р¶РµРЅРёРµРј, Р° РІ РіР°Р»РµСЂРµРµ С…СЂР°РЅСЏС‚СЃСЏ С‚РѕР»СЊРєРѕ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ С„РѕС‚Рѕ
+    const imageUrl = previewImageUrl || (gallery.length ? gallery[0] : '/image/avatar.png');
+    const createdAt = getMySQLDateTime();
+
+    // РЈР±РµРґРёРјСЃСЏ С‡С‚Рѕ gallery СЌС‚Рѕ РјР°СЃСЃРёРІ Рё РѕРЅР° СЃРѕРґРµСЂР¶РёС‚ СЃС‚СЂРѕРєРё
+    const finalGallery = Array.isArray(gallery) ? gallery.filter(img => typeof img === 'string' && img.trim()) : [];
 
     const result = await dbRun(
       `INSERT INTO cars (
@@ -1421,29 +1745,53 @@ app.post('/api/admin/cars', authMiddleware, adminOnly, upload.single('image'), a
         imageUrl,
         status || 'available',
         createdAt,
-        JSON.stringify(gallery),
-        specsJson ? JSON.stringify(safeJsonParse(specsJson, {})) : JSON.stringify({}),
-        priceTiersJson ? JSON.stringify(safeJsonParse(priceTiersJson, [])) : JSON.stringify([])
+        JSON.stringify(finalGallery),
+        specsText ? JSON.stringify(parseSpecsText(specsText)) : specsJson ? JSON.stringify(safeJsonParse(specsJson, {})) : JSON.stringify({}),
+        priceTiersText ? JSON.stringify(parsePriceTiersText(priceTiersText)) : priceTiersJson ? JSON.stringify(safeJsonParse(priceTiersJson, [])) : JSON.stringify([])
       ]
     );
 
     await logActivity('admin_car_create', { adminId: req.userId, carId: result.lastID });
-    return res.status(201).json({ success: true, message: 'Автомобиль добавлен' });
+    return res.status(201).json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅ РЅР° СЃР°Р№С‚' });
   } catch (error) {
     console.error('Admin add car error:', error);
-    return res.status(500).json({ error: 'Ошибка при добавлении' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё' });
   }
 });
 
-app.put('/api/admin/cars/:id', authMiddleware, adminOnly, upload.single('image'), async (req, res) => {
+app.put('/api/admin/cars/:id', authMiddleware, adminOnly, upload.fields([
+  { name: 'previewImage', maxCount: 1 },
+  { name: 'galleryImages', maxCount: 10 }
+]), async (req, res) => {
   try {
     const carId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM cars WHERE id = ?', [carId]);
-    if (!current) return res.status(404).json({ error: 'Автомобиль не найден' });
+    if (!current) return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
 
-    const imageUrl = req.file ? `/image/${req.file.filename}` : current.imageUrl;
-    const gallery = safeJsonParse(req.body.galleryJson, safeJsonParse(current.galleryJson, [imageUrl]));
+    const previewFile = req.files?.previewImage?.[0];
+    const galleryFiles = req.files?.galleryImages || [];
+    const uploadedGallery = galleryFiles.map((file) => `/image/${file.filename}`);
+    const currentGallery = safeJsonParse(current.galleryJson, [current.imageUrl]).filter(Boolean);
+    const gallery = req.body.galleryJson ? safeJsonParse(req.body.galleryJson, currentGallery) : currentGallery;
+    
+    // Р”РѕР±Р°РІР»СЏРµРј РЅРѕРІС‹Рµ Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ С„РѕС‚Рѕ РІ РЅР°С‡Р°Р»Рѕ РіР°Р»РµСЂРµРё
+    if (uploadedGallery.length) {
+      uploadedGallery.forEach((imageUrl) => {
+        if (!gallery.includes(imageUrl)) gallery.unshift(imageUrl);
+      });
+    }
+
+    // Р•СЃР»Рё Р·Р°РіСЂСѓР¶РµРЅРѕ РЅРѕРІРѕРµ РїСЂРµРІСЊСЋ, РґРѕР±Р°РІР»СЏРµРј РµРіРѕ
+    const previewImageUrl = previewFile ? `/image/${previewFile.filename}` : null;
+    if (previewImageUrl && !gallery.includes(previewImageUrl)) {
+      gallery.unshift(previewImageUrl);
+    }
+
+    const imageUrl = previewFile ? `/image/${previewFile.filename}` : current.imageUrl;
     if (!gallery.length) gallery.push(imageUrl);
+
+    // РћС‡РёС‰Р°РµРј РіР°Р»РµСЂРµСЋ РѕС‚ РґСѓР±Р»РёРєР°С‚РѕРІ Рё РїСѓСЃС‚С‹С… Р·РЅР°С‡РµРЅРёР№
+    const finalGallery = [...new Set(gallery.filter(img => typeof img === 'string' && img.trim()))];
 
     await dbRun(
       `UPDATE cars SET
@@ -1468,17 +1816,17 @@ app.put('/api/admin/cars/:id', authMiddleware, adminOnly, upload.single('image')
         req.body.features ?? current.features,
         imageUrl,
         req.body.status ?? current.status,
-        JSON.stringify(gallery),
-        req.body.specsJson ? JSON.stringify(safeJsonParse(req.body.specsJson, {})) : current.specsJson,
-        req.body.priceTiersJson ? JSON.stringify(safeJsonParse(req.body.priceTiersJson, [])) : current.priceTiersJson,
+        JSON.stringify(finalGallery),
+        req.body.specsText ? JSON.stringify(parseSpecsText(req.body.specsText)) : req.body.specsJson ? JSON.stringify(safeJsonParse(req.body.specsJson, {})) : current.specsJson,
+        req.body.priceTiersText ? JSON.stringify(parsePriceTiersText(req.body.priceTiersText)) : req.body.priceTiersJson ? JSON.stringify(safeJsonParse(req.body.priceTiersJson, [])) : current.priceTiersJson,
         carId
       ]
     );
     await logActivity('admin_car_update', { adminId: req.userId, carId });
-    return res.json({ success: true, message: 'Автомобиль обновлён' });
+    return res.json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ РѕР±РЅРѕРІР»С‘РЅ' });
   } catch (error) {
     console.error('Admin update car error:', error);
-    return res.status(500).json({ error: 'Ошибка обновления автомобиля' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ Р°РІС‚РѕРјРѕР±РёР»СЏ' });
   }
 });
 
@@ -1486,7 +1834,7 @@ app.delete('/api/admin/cars/:id', authMiddleware, adminOnly, async (req, res) =>
   try {
     const carId = Number(req.params.id);
     const current = await dbGet('SELECT imageUrl FROM cars WHERE id = ?', [carId]);
-    if (!current) return res.status(404).json({ error: 'Авто не найдено' });
+    if (!current) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
 
     await dbRun('DELETE FROM cars WHERE id = ?', [carId]);
     if (current.imageUrl && current.imageUrl.startsWith('/image/car-')) {
@@ -1496,10 +1844,10 @@ app.delete('/api/admin/cars/:id', authMiddleware, adminOnly, async (req, res) =>
       }
     }
     await logActivity('admin_car_delete', { adminId: req.userId, carId });
-    return res.json({ success: true, message: 'Автомобиль удалён' });
+    return res.json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓРґР°Р»С‘РЅ' });
   } catch (error) {
     console.error('Admin delete car error:', error);
-    return res.status(500).json({ error: 'Ошибка БД' });
+    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
   }
 });
 
@@ -1518,7 +1866,7 @@ app.get('/api/admin/bookings', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ bookings });
   } catch (error) {
     console.error('Admin bookings error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить бронирования' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
   }
 });
 
@@ -1526,19 +1874,19 @@ app.patch('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res)
   try {
     const bookingId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-    if (!current) return res.status(404).json({ error: 'Бронирование не найдено' });
+    if (!current) return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
 
     const nextStatus = req.body.status || current.status;
     const adminComment = req.body.adminComment ?? current.adminComment;
     await dbRun(
       `UPDATE bookings SET status = ?, adminComment = ?, updatedAt = ? WHERE id = ?`,
-      [nextStatus, adminComment, new Date().toISOString(), bookingId]
+      [nextStatus, adminComment, getMySQLDateTime(), bookingId]
     );
     await logActivity('admin_booking_update', { adminId: req.userId, bookingId, status: nextStatus });
-    return res.json({ success: true, message: 'Бронирование обновлено' });
+    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕР±РЅРѕРІР»РµРЅРѕ' });
   } catch (error) {
     console.error('Admin update booking error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить бронирование' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
   }
 });
 
@@ -1546,10 +1894,10 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
   try {
     const bookingId = Number(req.params.id);
     const booking = await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-    if (!booking) return res.status(404).json({ error: 'Бронирование не найдено' });
+    if (!booking) return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
     const paymentUrl = booking.paymentUrl || `/payment/${booking.paymentToken}`;
-    const smsText = `Карзен: ссылка на оплату бронирования ${paymentUrl}`;
-    const now = new Date().toISOString();
+    const smsText = `РљР°СЂР·РµРЅ: СЃСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ ${paymentUrl}`;
+    const now = getMySQLDateTime();
 
     await dbRun(
       `UPDATE bookings
@@ -1562,7 +1910,7 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
     await addNotification({
       channel: 'sms',
       recipient: booking.customerPhone,
-      subject: 'Ссылка на оплату бронирования',
+      subject: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ',
       content: smsText,
       status: 'prepared'
     });
@@ -1570,13 +1918,102 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
 
     return res.json({
       success: true,
-      message: 'Ссылка на оплату подготовлена для отправки по SMS',
+      message: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РїРѕРґРіРѕС‚РѕРІР»РµРЅР° РґР»СЏ РѕС‚РїСЂР°РІРєРё РїРѕ SMS',
       paymentUrl,
       smsText
     });
   } catch (error) {
     console.error('Send payment link error:', error);
-    return res.status(500).json({ error: 'Не удалось подготовить ссылку на оплату' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРіРѕС‚РѕРІРёС‚СЊ СЃСЃС‹Р»РєСѓ РЅР° РѕРїР»Р°С‚Сѓ' });
+  }
+});
+
+// Get user's current and past bookings
+app.get('/api/bookings/my', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const rows = await dbAll(
+      `SELECT b.*, c.title as carTitle, c.brand as carBrand, c.model as carModel, c.imageUrl as carImage
+       FROM bookings b
+       LEFT JOIN cars c ON c.id = b.carId
+       WHERE b.userId = ?
+       ORDER BY b.startDate DESC`,
+      [userId]
+    );
+    const bookings = rows.map((row) => ({
+      ...row,
+      selectedOptions: safeJsonParse(row.selectedOptionsJson, [])
+    }));
+    return res.json({ bookings });
+  } catch (error) {
+    console.error('Get user bookings error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°СЂРµРЅРґС‹' });
+  }
+});
+
+// Get booking details
+app.get('/api/bookings/:id', authMiddleware, async (req, res) => {
+  try {
+    const bookingId = Number(req.params.id);
+    const booking = await dbGet(
+      `SELECT b.*, c.title as carTitle, c.brand as carBrand, c.model as carModel, c.imageUrl as carImage,
+              c.fuelType, c.transmission, c.driveType, c.seats, c.bodyType, c.features
+       FROM bookings b
+       LEFT JOIN cars c ON c.id = b.carId
+       WHERE b.id = ? AND (b.userId = ? OR ? = 1)`,
+      [bookingId, req.userId, req.userRole === 'admin' ? 1 : 0]
+    );
+    if (!booking) {
+      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    }
+    booking.selectedOptions = safeJsonParse(booking.selectedOptionsJson, []);
+    return res.json({ booking });
+  } catch (error) {
+    console.error('Get booking details error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРµС‚Р°Р»Рё Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
+  }
+});
+
+// Cancel booking (user)
+app.post('/api/bookings/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const bookingId = Number(req.params.id);
+    const booking = await dbGet('SELECT * FROM bookings WHERE id = ? AND userId = ?', [bookingId, req.userId]);
+    
+    if (!booking) {
+      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    }
+    
+    if (!['pending', 'payment_link_sent'].includes(booking.status)) {
+      return res.status(400).json({ error: 'РќРµРІРѕР·РјРѕР¶РЅРѕ РѕС‚РјРµРЅРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СЃ С‚Р°РєРёРј СЃС‚Р°С‚СѓСЃРѕРј' });
+    }
+    
+    await dbRun(
+      'UPDATE bookings SET status = ?, updatedAt = ? WHERE id = ?',
+      ['cancelled', getMySQLDateTime(), bookingId]
+    );
+    
+    await logActivity('user_booking_cancelled', { userId: req.userId, bookingId });
+    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕС‚РјРµРЅРµРЅРѕ' });
+  } catch (error) {
+    console.error('Cancel booking error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РјРµРЅРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
+  }
+});
+
+// Admin: Delete booking
+app.delete('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const bookingId = Number(req.params.id);
+    const result = await dbRun('DELETE FROM bookings WHERE id = ?', [bookingId]);
+    if (!result.changes) {
+      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    }
+    await logActivity('admin_booking_delete', { adminId: req.userId, bookingId });
+    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СѓРґР°Р»РµРЅРѕ' });
+  } catch (error) {
+    console.error('Admin delete booking error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
   }
 });
 
@@ -1586,7 +2023,7 @@ app.get('/api/admin/promo-codes', authMiddleware, adminOnly, async (req, res) =>
     return res.json({ promoCodes: rows });
   } catch (error) {
     console.error('Promo admin list error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить промокоды' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРјРѕРєРѕРґС‹' });
   }
 });
 
@@ -1594,21 +2031,21 @@ app.post('/api/admin/promo-codes', authMiddleware, adminOnly, async (req, res) =
   try {
     const { code, title, discountPercent, expiresAt, isActive } = req.body;
     if (!code || !discountPercent) {
-      return res.status(400).json({ error: 'Укажите код и размер скидки' });
+      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РєРѕРґ Рё СЂР°Р·РјРµСЂ СЃРєРёРґРєРё' });
     }
     await dbRun(
       `INSERT INTO promo_codes (code, title, discountPercent, isActive, createdAt, expiresAt)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [String(code).trim().toUpperCase(), title || null, Number(discountPercent), isActive === false ? 0 : 1, new Date().toISOString(), expiresAt || null]
+      [String(code).trim().toUpperCase(), title || null, Number(discountPercent), isActive === false ? 0 : 1, getMySQLDateTime(), expiresAt || null]
     );
     await logActivity('admin_promo_create', { adminId: req.userId, code });
-    return res.status(201).json({ success: true, message: 'Промокод добавлен' });
+    return res.status(201).json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РґРѕР±Р°РІР»РµРЅ' });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'Такой промокод уже существует' });
+      return res.status(400).json({ error: 'РўР°РєРѕР№ РїСЂРѕРјРѕРєРѕРґ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
     }
     console.error('Promo create error:', error);
-    return res.status(500).json({ error: 'Не удалось добавить промокод' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
   }
 });
 
@@ -1616,7 +2053,7 @@ app.put('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, res
   try {
     const promoId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM promo_codes WHERE id = ?', [promoId]);
-    if (!current) return res.status(404).json({ error: 'Промокод не найден' });
+    if (!current) return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
     await dbRun(
       `UPDATE promo_codes SET code = ?, title = ?, discountPercent = ?, isActive = ?, expiresAt = ? WHERE id = ?`,
       [
@@ -1629,10 +2066,10 @@ app.put('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, res
       ]
     );
     await logActivity('admin_promo_update', { adminId: req.userId, promoId });
-    return res.json({ success: true, message: 'Промокод обновлён' });
+    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РѕР±РЅРѕРІР»С‘РЅ' });
   } catch (error) {
     console.error('Promo update error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить промокод' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
   }
 });
 
@@ -1640,12 +2077,12 @@ app.delete('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, 
   try {
     const promoId = Number(req.params.id);
     const result = await dbRun('DELETE FROM promo_codes WHERE id = ?', [promoId]);
-    if (!result.changes) return res.status(404).json({ error: 'Промокод не найден' });
+    if (!result.changes) return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
     await logActivity('admin_promo_delete', { adminId: req.userId, promoId });
-    return res.json({ success: true, message: 'Промокод удалён' });
+    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ СѓРґР°Р»С‘РЅ' });
   } catch (error) {
     console.error('Promo delete error:', error);
-    return res.status(500).json({ error: 'Не удалось удалить промокод' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
   }
 });
 
@@ -1655,7 +2092,7 @@ app.get('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res) 
     return res.json({ options: rows });
   } catch (error) {
     console.error('Admin options error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить опции' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕРїС†РёРё' });
   }
 });
 
@@ -1663,7 +2100,7 @@ app.post('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res)
   try {
     const { code, title, price, chargeType, isActive, sortOrder } = req.body;
     if (!code || !title) {
-      return res.status(400).json({ error: 'Укажите код и название опции' });
+      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РєРѕРґ Рё РЅР°Р·РІР°РЅРёРµ РѕРїС†РёРё' });
     }
     await dbRun(
       `INSERT INTO extra_options (code, title, price, chargeType, isActive, sortOrder, createdAt)
@@ -1675,14 +2112,14 @@ app.post('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res)
         chargeType === 'day' ? 'day' : 'once',
         isActive === false ? 0 : 1,
         Number(sortOrder || 0),
-        new Date().toISOString()
+        getMySQLDateTime()
       ]
     );
     await logActivity('admin_option_create', { adminId: req.userId, code });
-    return res.status(201).json({ success: true, message: 'Опция добавлена' });
+    return res.status(201).json({ success: true, message: 'РћРїС†РёСЏ РґРѕР±Р°РІР»РµРЅР°' });
   } catch (error) {
     console.error('Option create error:', error);
-    return res.status(500).json({ error: 'Не удалось добавить опцию' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ РѕРїС†РёСЋ' });
   }
 });
 
@@ -1690,7 +2127,7 @@ app.put('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req, r
   try {
     const optionId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM extra_options WHERE id = ?', [optionId]);
-    if (!current) return res.status(404).json({ error: 'Опция не найдена' });
+    if (!current) return res.status(404).json({ error: 'РћРїС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
     await dbRun(
       `UPDATE extra_options
        SET code = ?, title = ?, price = ?, chargeType = ?, isActive = ?, sortOrder = ?
@@ -1706,10 +2143,10 @@ app.put('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req, r
       ]
     );
     await logActivity('admin_option_update', { adminId: req.userId, optionId });
-    return res.json({ success: true, message: 'Опция обновлена' });
+    return res.json({ success: true, message: 'РћРїС†РёСЏ РѕР±РЅРѕРІР»РµРЅР°' });
   } catch (error) {
     console.error('Option update error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить опцию' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РѕРїС†РёСЋ' });
   }
 });
 
@@ -1717,12 +2154,12 @@ app.delete('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req
   try {
     const optionId = Number(req.params.id);
     const result = await dbRun('DELETE FROM extra_options WHERE id = ?', [optionId]);
-    if (!result.changes) return res.status(404).json({ error: 'Опция не найдена' });
+    if (!result.changes) return res.status(404).json({ error: 'РћРїС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
     await logActivity('admin_option_delete', { adminId: req.userId, optionId });
-    return res.json({ success: true, message: 'Опция удалена' });
+    return res.json({ success: true, message: 'РћРїС†РёСЏ СѓРґР°Р»РµРЅР°' });
   } catch (error) {
     console.error('Option delete error:', error);
-    return res.status(500).json({ error: 'Не удалось удалить опцию' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕРїС†РёСЋ' });
   }
 });
 
@@ -1731,26 +2168,26 @@ app.get('/api/admin/site-content', authMiddleware, adminOnly, async (req, res) =
     return res.json({ content: await getSiteContentMap() });
   } catch (error) {
     console.error('Admin site content get error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить контент сайта' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
   }
 });
 
 app.put('/api/admin/site-content', authMiddleware, adminOnly, async (req, res) => {
   try {
     const content = req.body.content || {};
-    const now = new Date().toISOString();
+    const now = getMySQLDateTime();
     for (const [key, value] of Object.entries(content)) {
       await dbRun(
-        `INSERT INTO site_content (key, value, updatedAt) VALUES (?, ?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt`,
+        'INSERT INTO site_content (`key`, value, updatedAt) VALUES (?, ?, ?)'
+        + ' ON DUPLICATE KEY UPDATE value = VALUES(value), updatedAt = VALUES(updatedAt)',
         [key, String(value ?? ''), now]
       );
     }
     await logActivity('admin_site_content_update', { adminId: req.userId, keys: Object.keys(content) });
-    return res.json({ success: true, message: 'Контент сайта обновлён' });
+    return res.json({ success: true, message: 'РљРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р° РѕР±РЅРѕРІР»С‘РЅ' });
   } catch (error) {
     console.error('Admin site content update error:', error);
-    return res.status(500).json({ error: 'Не удалось обновить контент сайта' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
   }
 });
 
@@ -1760,7 +2197,7 @@ app.get('/api/admin/notifications', authMiddleware, adminOnly, async (req, res) 
     return res.json({ notifications: rows });
   } catch (error) {
     console.error('Notifications error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить уведомления' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ' });
   }
 });
 
@@ -1775,7 +2212,7 @@ app.get('/api/admin/activity-log', authMiddleware, adminOnly, async (req, res) =
     });
   } catch (error) {
     console.error('Activity log error:', error);
-    return res.status(500).json({ error: 'Не удалось загрузить журнал действий' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р¶СѓСЂРЅР°Р» РґРµР№СЃС‚РІРёР№' });
   }
 });
 
@@ -1787,46 +2224,187 @@ app.get('/api/admin/export/report.pdf', authMiddleware, adminOnly, async (req, r
         (SELECT COUNT(*) FROM cars) as totalCars,
         (SELECT COUNT(*) FROM bookings) as totalBookings,
         (SELECT COUNT(*) FROM bookings WHERE status = 'paid') as paidBookings,
-        (SELECT COALESCE(SUM(totalPrice), 0) FROM bookings WHERE status = 'paid') as revenue`
+        (SELECT COUNT(*) FROM bookings WHERE status = 'pending') as pendingBookings,
+        (SELECT COUNT(*) FROM bookings WHERE status = 'cancelled') as cancelledBookings,
+        (SELECT COALESCE(SUM(totalPrice), 0) FROM bookings WHERE status = 'paid') as revenue,
+        (SELECT COALESCE(SUM(totalPrice), 0) FROM bookings WHERE status = 'pending') as pendingRevenue`
     );
+
     const recentBookings = await dbAll(
       `SELECT b.id, c.title as carTitle, b.customerName, b.startDate, b.endDate, b.totalPrice, b.status
        FROM bookings b
        LEFT JOIN cars c ON c.id = b.carId
        ORDER BY b.createdAt DESC
-       LIMIT 15`
+       LIMIT 10`
+    );
+
+    const popularCars = await dbAll(
+      `SELECT c.id, c.title, COUNT(b.id) as bookingsCount, COALESCE(SUM(b.totalPrice), 0) as earnings
+       FROM cars c
+       LEFT JOIN bookings b ON b.carId = c.id AND b.status = 'paid'
+       GROUP BY c.id
+       ORDER BY bookingsCount DESC, c.title ASC
+       LIMIT 6`
+    );
+
+    const statusStats = await dbAll(
+      `SELECT status, COUNT(*) as count, COALESCE(SUM(totalPrice), 0) as sum
+       FROM bookings
+       GROUP BY status
+       ORDER BY status`
     );
 
     const lines = [
-      `Дата выгрузки: ${formatDateRu(new Date().toISOString())}`,
-      `Пользователи: ${stats.totalUsers}`,
-      `Автомобили: ${stats.totalCars}`,
-      `Бронирования: ${stats.totalBookings}`,
-      `Оплаченные бронирования: ${stats.paidBookings}`,
-      `Выручка: ${new Intl.NumberFormat('ru-RU').format(stats.revenue)} руб.`,
-      ' ',
-      'Последние бронирования:'
+      'РћРЎРќРћР’РќР«Р• РџРћРљРђР—РђРўР•Р›Р',
+      '====================================================================',
+      ['Р”Р°С‚Р° РІС‹РіСЂСѓР·РєРё:', formatDateRu(getMySQLDateTime())],
+      [],
+      'РЎРўРђРўРРЎРўРРљРђ РџРћР›Р¬Р—РћР’РђРўР•Р›Р•Р™ Р Р¤Р›РћРўРђ',
+      ['Р’СЃРµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№:', String(stats.totalUsers)],
+      ['РђРєС‚РёРІРЅС‹С… Р°РІС‚РѕРјРѕР±РёР»РµР№:', String(stats.totalCars)],
+      [],
+      'РЎРўРђРўРРЎРўРРљРђ РџРћ Р‘Р РћРќРР РћР’РђРќРРЇРњ',
+      ['Р’СЃРµРіРѕ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёР№:', String(stats.totalBookings)],
+      ['  - РћРїР»Р°С‡РµРЅРѕ:', `${stats.paidBookings} (${new Intl.NumberFormat('ru-RU').format(stats.revenue)} СЂСѓР±.)`],
+      ['  - РќР° СЂР°СЃСЃРјРѕС‚СЂРµРЅРёРё:', `${stats.pendingBookings} (${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} СЂСѓР±.)`],
+      ['  - РћС‚РјРµРЅРµРЅРѕ:', String(stats.cancelledBookings)],
+      [],
+      'РЎРўРђРўРРЎРўРРљРђ РџРћ РЎРўРђРўРЈРЎРђРњ',
+      ...statusStats.map((s) => [`${s.status}:`, `${s.count} Р±СЂ. (${new Intl.NumberFormat('ru-RU').format(s.sum)} СЂСѓР±.)`]),
+      [],
+      'Р¤РРќРђРќРЎРћР’Р«Р™ РРўРћР“',
+      ['РџРѕР»СѓС‡РµРЅРѕ (РѕРїР»Р°С‡РµРЅРѕ):', `${new Intl.NumberFormat('ru-RU').format(stats.revenue)} СЂСѓР±.`],
+      ['Р’ РѕР¶РёРґР°РЅРёРё РѕРїР»Р°С‚С‹:', `${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} СЂСѓР±.`],
+      ['РџРѕС‚РµРЅС†РёР°Р»СЊРЅС‹Р№ РґРѕС…РѕРґ:', `${new Intl.NumberFormat('ru-RU').format(stats.revenue + stats.pendingRevenue)} СЂСѓР±.`],
+      [],
+      'РџРћРЎР›Р•Р”РќРР• Р‘Р РћРќРР РћР’РђРќРРЇ (10 С€С‚)',
+      '====================================================================',
+      ['ID', 'РђРІС‚Рѕ', 'РљР»РёРµРЅС‚', 'Р”Р°С‚С‹', 'РЎС‚Р°С‚СѓСЃ', 'РЎСѓРјРјР°']
     ];
 
     recentBookings.forEach((booking) => {
-      lines.push(
-        `#${booking.id} | ${booking.carTitle || '-'} | ${booking.customerName} | ${booking.startDate} - ${booking.endDate} | ${booking.status} | ${booking.totalPrice} руб.`
-      );
+      lines.push([
+        `#${booking.id}`,
+        (booking.carTitle || 'N/A').substring(0, 15),
+        (booking.customerName || 'N/A').substring(0, 12),
+        `${booking.startDate}`,
+        booking.status.substring(0, 10),
+        `${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)}СЂ`
+      ]);
     });
 
-    const pdf = generateSimplePdf('Карзен: отчет администратора', lines);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="carzen-report.pdf"');
-    return res.send(pdf);
+    lines.push(
+      [],
+      'РџРћРџРЈР›РЇР РќР«Р• РђР’РўРћРњРћР‘РР›Р (С‚РѕРї 6)',
+      '====================================================================',
+      ['РђРІС‚Рѕ', 'Р‘СЂРѕРЅРµР№', 'Р’С‹СЂСѓС‡РєР°']
+    );
+
+    popularCars.forEach((car) => {
+      lines.push([
+        (car.title || 'N/A').substring(0, 20),
+        String(car.bookingsCount),
+        `${new Intl.NumberFormat('ru-RU').format(car.earnings)} СЂ`
+      ]);
+    });
+
+    const report = generateSimplePdf('РћРўР§Р•Рў РђР”РњРРќРРЎРўР РђРўРћР Рђ CARZEN', lines);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="carzen-report.txt"');
+    return res.send(report);
   } catch (error) {
     console.error('Export pdf error:', error);
-    return res.status(500).json({ error: 'Не удалось сформировать PDF-отчёт' });
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РѕС‚С‡С‘С‚' });
+  }
+});
+
+// Get user's promos
+app.get('/api/user/promos', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const rows = await dbAll(
+      `SELECT p.id, p.code, p.title, p.discountPercent, p.expiresAt, up.assignedAt, up.expiresAt as userPromoExpires
+       FROM user_promos up
+       JOIN promo_codes p ON up.promoId = p.id
+       WHERE up.userId = ? AND up.usedAt IS NULL
+       ORDER BY up.assignedAt DESC`,
+      [userId]
+    );
+    return res.json({ promos: rows });
+  } catch (error) {
+    console.error('User promos load error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРјРѕРєРѕРґС‹' });
+  }
+});
+
+// Admin: assign promo to user
+app.post('/api/admin/users/:userId/promos', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { promoId } = req.body;
+    
+    if (!promoId) {
+      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РїСЂРѕРјРѕРєРѕРґ' });
+    }
+    
+    const promo = await dbGet('SELECT * FROM promo_codes WHERE id = ?', [promoId]);
+    if (!promo) {
+      return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
+    }
+    
+    const user = await dbGet('SELECT id FROM users WHERE id = ?', [userId]);
+    if (!user) {
+      return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    }
+    
+    // Check if user already has this promo
+    const existing = await dbGet(
+      'SELECT id FROM user_promos WHERE userId = ? AND promoId = ? AND usedAt IS NULL',
+      [userId, promoId]
+    );
+    if (existing) {
+      return res.status(400).json({ error: 'Р­С‚РѕС‚ РїСЂРѕРјРѕРєРѕРґ СѓР¶Рµ РІС‹РґР°РЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ' });
+    }
+    
+    await dbRun(
+      `INSERT INTO user_promos (userId, promoId, assignedAt, expiresAt)
+       VALUES (?, ?, ?, ?)`,
+      [userId, promoId, getMySQLDateTime(), promo.expiresAt || null]
+    );
+    
+    await logActivity('admin_assign_promo_to_user', { adminId: req.userId, userId, promoId });
+    return res.status(201).json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РІС‹РґР°РЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ' });
+  } catch (error) {
+    console.error('Assign promo error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РґР°С‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+  }
+});
+
+// Admin: remove promo from user
+app.delete('/api/admin/users/:userId/promos/:userPromoId', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { userId, userPromoId } = req.params;
+    
+    const userPromo = await dbGet(
+      'SELECT * FROM user_promos WHERE id = ? AND userId = ?',
+      [userPromoId, userId]
+    );
+    if (!userPromo) {
+      return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµ РЅР°Р№РґРµРЅ' });
+    }
+    
+    await dbRun('DELETE FROM user_promos WHERE id = ?', [userPromoId]);
+    await logActivity('admin_revoke_promo_from_user', { adminId: req.userId, userId, userPromoId });
+    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РѕС‚РѕР·РІР°РЅ' });
+  } catch (error) {
+    console.error('Revoke promo error:', error);
+    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РѕР·РІР°С‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
   }
 });
 
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
-  return res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера' });
+  return res.status(500).json({ error: error.message || 'Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
 });
 
 initDb()
@@ -1839,3 +2417,7 @@ initDb()
     console.error('DB init error:', error);
     process.exit(1);
   });
+
+
+
+

@@ -43,10 +43,9 @@
     flex-shrink: 0;
 }
 
-.gallery-nav:hover {
+..gallery-nav:hover {
     background: rgba(116, 230, 255, 0.9);
     color: #000000;
-    transform: scale(1.1);
 }
 
 .car-main-image {
@@ -74,7 +73,7 @@
     gap: 20px;
 }
 
-.gallery-nav {
+..gallery-nav {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid #2F2F2F;
     border-radius: 50%;
@@ -85,7 +84,7 @@
     justify-content: center;
     cursor: pointer;
     color: #ffffff;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
     flex-shrink: 0;
     z-index: 2;
 }
@@ -94,11 +93,10 @@
     background: rgba(116, 230, 255, 0.9);
     border-color: #74E6FF;
     color: #000000;
-    transform: scale(1.1);
 }
 
 .gallery-nav:active {
-    transform: scale(0.95);
+    opacity: 0.9;
 }
 
 .car-main-image {
@@ -110,11 +108,60 @@
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+.gallery-slider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    max-width: 520px;
+    width: 100%;
+    justify-content: center;
+    position: relative;
+}
+
+.slider-image {
+    width: 100%;
+    max-width: 520px;
+    min-width: 240px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.gallery-nav.prev {
+    left: -48px;
+}
+
+.gallery-nav.next {
+    right: -48px;
+}
+
+@media (max-width: 768px) {
+    .gallery-nav.prev {
+        left: 0;
+    }
+
+    .gallery-nav.next {
+        right: 0;
+    }
+}
+
+.slider-image .main-car-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
 .gallery-dots {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-bottom: 40px;
+    margin-top: 18px;
 }
 
 .dot {
@@ -150,21 +197,6 @@
     .car-gallery {
         gap: 10px;
     }
-}
-.gallery-dots {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 40px;
-}
-
-.dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #2F2F2F;
-    cursor: pointer;
-    transition: all 0.3s ease;
 }
 
 .dot.active {
@@ -313,6 +345,42 @@
     font-weight: 500;
     color: #ffffff;
     margin-bottom: 30px;
+}
+
+.price-old {
+    display: block;
+    font-size: 16px;
+    font-weight: 400;
+    color: #aaaaaa;
+    text-decoration: line-through;
+    margin-bottom: 8px;
+}
+
+.price-new {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: #74E6FF;
+    margin-bottom: 10px;
+}
+
+.promo-details {
+    font-family: Onest, sans-serif;
+    font-size: 14px;
+    color: #b3f0ff;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.booking-summary-note {
+    grid-column: 1 / -1;
+    border: 1px solid rgba(116, 230, 255, 0.2);
+    background: rgba(116, 230, 255, 0.08);
+    color: #74E6FF;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-top: 10px;
+    font-size: 14px;
 }
 
 .btn-book {
@@ -585,8 +653,26 @@
     gap:8px;
 }
 .booking-input{
-    min-height: 56px;
+    min-height: 40px;
     padding: 14px 18px;
+    background-color: #1a1a1a;
+    border: 2px solid #2F2F2F;
+    color: #ffffff;
+    font-size: 15px;
+    border-radius: 8px;
+    font-family: Onest, sans-serif;
+    transition: all 0.3s ease;
+}
+
+.booking-input::placeholder {
+    color: #666666;
+}
+
+.booking-input:focus {
+    border-color: #74E6FF;
+    background-color: #242424;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(116, 230, 255, 0.1);
 }
 .promo-inline{
     display:flex;
@@ -655,6 +741,16 @@
     max-width:none;
 }
 
+.filter-label{
+    color: #FFFFFF;
+    display: block;
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 @keyframes carFadeIn {
     from {
         opacity: 0;
@@ -669,6 +765,7 @@
 @media (max-width: 968px) {
     .car-main-title {
         font-size: 48px;
+        margin-bottom: 30px;
     }
     
     .specs-grid {
@@ -715,6 +812,7 @@
     
     .feedback-text {
         font-size: 15px;
+        line-height: 1.6;
     }
 
     .review-form-block {
@@ -728,66 +826,187 @@
     .review-submit-btn {
         max-width: none;
     }
+    
     .booking-grid,
     .booking-options,
     .booking-summary{
         grid-template-columns: 1fr;
     }
+    
     .promo-inline,
     .booking-actions{
         flex-direction:column;
+    }
+    
+    .booking-field label,
+    .filter-label {
+        color: #74E6FF;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .booking-input {
+        background-color: #1a1a1a;
+        border: 2px solid #2F2F2F;
+        color: #ffffff;
+        font-size: 15px;
+        min-height: 45px;
+    }
+    
+    .booking-input:focus {
+        border-color: #74E6FF;
+        background-color: #242424;
     }
 }
 
 @media (max-width: 576px) {
     .car-details-section {
-        padding: 60px 0;
+        padding: 80px 0 40px 0;
     }
     
     .car-main-title {
-        font-size: 36px;
+        font-size: 28px;
+        margin-bottom: 24px;
+        line-height: 1.3;
+        letter-spacing: 0px;
+    }
+    
+    .car-header {
+        margin-bottom: 40px;
     }
     
     .gallery-nav {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
+    }
+    
+    .gallery-nav svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .car-gallery {
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .car-main-image {
+        max-width: 100%;
+    }
+    
+    .gallery-dots {
+        margin-bottom: 24px;
+    }
+    
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .dot.active {
+        width: 24px;
     }
     
     .car-actions {
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
     
     .btn-action {
         width: 100%;
         min-width: auto;
+        padding: 12px 16px;
+        font-size: 13px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .specs-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 30px;
     }
     
     .specs-column {
-        padding: 20px;
+        padding: 16px;
+        background-color: #0a0a0a;
+        border: 2px solid #2F2F2F;
+        border-radius: 8px;
     }
     
     .spec-row {
-        padding: 12px 0;
+        padding: 10px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
     }
     
     .spec-row:hover {
-        margin: 0 -20px;
-        padding-left: 20px;
-        padding-right: 20px;
+        margin: 0;
+        padding-left: 0;
+        padding-right: 0;
+        background-color: transparent;
     }
     
     .spec-label,
     .spec-value {
-        font-size: 14px;
+        font-size: 12px;
+    }
+    
+    .spec-label {
+        color: #999999;
+        min-width: 80px;
+    }
+    
+    .spec-value {
+        color: #ffffff;
+        text-align: right;
+        flex: 1;
+    }
+    
+    .more-info {
+        margin-bottom: 30px;
+    }
+    
+    .more-info-link {
+        font-size: 13px;
+    }
+    
+    .pricing-section {
+        margin-top: 30px;
     }
     
     .pricing-title {
-        font-size: 28px;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    
+    .pricing-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .pricing-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
     }
     
     .main-price {
-        font-size: 24px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .btn-book {
+        padding: 10px 16px;
+        font-size: 13px;
+        min-height: 40px;
+        white-space: nowrap;
     }
     
     .pricing-table {
@@ -795,33 +1014,165 @@
     }
     
     .price-tier {
-        border-right: none;
-        border-bottom: 1px solid #1a1a1a;
-        padding: 20px;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .price-tier:last-child {
-        border-bottom: none;
+        padding: 14px;
+        gap: 12px;
     }
     
     .tier-days {
+        font-size: 13px;
         margin-bottom: 0;
     }
     
     .tier-price {
-        font-size: 20px;
+        font-size: 16px;
     }
-   .feedback-section {
+    
+    .booking-section {
+        margin-top: 30px;
+        padding: 20px 16px;
+        border-radius: 12px;
+    }
+    
+    .booking-section-header {
+        margin-bottom: 20px;
+    }
+    
+    .booking-intro {
+        font-size: 13px;
+        margin-bottom: 16px;
+        line-height: 1.5;
+        color: #aaaaaa;
+    }
+    
+    .booking-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .booking-field {
+        gap: 6px;
+    }
+    
+    .booking-field label,
+    .filter-label {
+        color: #74E6FF;
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .booking-input {
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background-color: #1a1a1a;
+        border: 2px solid #2F2F2F;
+        color: #ffffff;
+        border-radius: 6px;
+    }
+    
+    .booking-input::placeholder {
+        color: #666666;
+    }
+    
+    .booking-input:focus {
+        border-color: #74E6FF;
+        background-color: #242424;
+        outline: none;
+    }
+    
+    .promo-inline {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .promo-apply-btn {
+        min-width: 100%;
+        max-width: none;
+    }
+    
+    .booking-meta {
+        font-size: 12px;
+        margin-top: 6px;
+    }
+    
+    .booking-options-block {
+        margin-top: 16px;
+    }
+    
+    .booking-options-block .review-form-title {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .booking-options {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .booking-option-card {
+        padding: 12px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .booking-option-card span {
+        display: block;
+    }
+    
+    .booking-option-card strong {
+        color: #74E6FF;
+        font-size: 12px;
+    }
+    
+    .booking-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    
+    .booking-summary-card {
+        padding: 12px;
+        border-radius: 8px;
+        gap: 6px;
+    }
+    
+    .booking-summary-card span {
+        font-size: 11px;
+        color: #999999;
+    }
+    
+    .booking-summary-card strong {
+        font-size: 14px;
+        color: #74E6FF;
+    }
+    
+    .booking-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    
+    .btn-book,
+    .booking-submit-btn {
+        width: 100%;
+        max-width: none;
+        min-height: 42px;
+        font-size: 14px;
+    }
+    
+    .feedback-section {
         padding: 40px 0;
     }
     
     .feedback-title {
-        font-size: 28px;
-        margin-bottom: 25px;
-        text-align: center;
+        font-size: 22px;
+        margin-bottom: 20px;
+        line-height: 1.3;
     }
     
     .feedback-grid {
@@ -829,34 +1180,136 @@
         gap: 12px;
     }
 
+    .feedback-card {
+        padding: 16px;
+        border-radius: 8px;
+    }
+
     .feedback-meta {
+        flex-direction: column;
         align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .feedback-name {
+        font-size: 14px;
+    }
+
+    .feedback-text {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    
+    .feedback-rating {
+        font-size: 13px;
     }
 
     .review-form-block {
-        padding: 22px 18px;
-        margin-top: 24px;
+        padding: 16px;
+        margin-top: 20px;
+        border-radius: 8px;
     }
 
     .review-form-title {
-        font-size: 24px;
+        font-size: 18px;
+        margin-bottom: 8px;
     }
 
     .review-form-subtitle {
-        font-size: 14px;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    
+    .review-form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
     .review-textarea {
-        min-height: 130px;
-        padding: 16px 18px;
-        font-size: 14px;
+        min-height: 120px;
+        padding: 12px 14px;
+        font-size: 13px;
+        border-radius: 6px;
     }
     
-    .feature-card {
-        padding: 20px;
+    .form-input {
+        padding: 10px 12px;
+        font-size: 14px;
+        min-height: 40px;
     }
     
-    .feature-text {
-        font-size: 14px;
+    .submit-btn,
+    .review-submit-btn {
+        min-height: 40px;
+        font-size: 13px;
+        max-width: none;
+        width: 100%;
+    }
+    
+    .form-note {
+        font-size: 11px;
+    }
+    
+    .consultation-section {
+        padding: 30px 0;
+    }
+    
+    .consultation-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .consultation-form {
+        order: 2;
+    }
+    
+    .consultation-title {
+        font-size: 20px;
+    }
+    
+    .consultation-image {
+        order: 1;
+        max-height: 250px;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 380px) {
+    .car-main-title {
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .btn-action {
+        font-size: 12px;
+        padding: 10px 12px;
+    }
+    
+    .booking-field label,
+    .filter-label {
+        font-size: 11px;
+    }
+    
+    .booking-input {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+    
+    .pricing-title {
+        font-size: 20px;
+    }
+    
+    .main-price {
+        font-size: 16px;
+    }
+    
+    .specs-column {
+        padding: 12px;
+    }
+    
+    .spec-label,
+    .spec-value {
+        font-size: 11px;
     }
 }

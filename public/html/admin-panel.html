@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель - Carzen</title>
+    <title>Админ-панель Карзен</title>
     <link rel="stylesheet" href="/public/css/st_admin.css">
     <link rel="stylesheet" href="/public/css/st_head_foot_formrent.css">
 </head>
@@ -12,7 +12,7 @@
         <div class="container header-container">
             <a href="#" class="logo">
                 <svg class="logo-icon"></svg>
-                <span>Car</span>Zen
+                <span>Кар</span>Зен
             </a>
             <nav class="nav">
                 <a href="/public/html/menu.html" class="nav-link">Главная</a>
@@ -165,6 +165,31 @@
                         </div>
                     </div>
 
+                    <div class="admin-block" id="carPromotions">
+                        <h2 class="block-title">Акции на автомобили</h2>
+                        <form id="carPromoForm" class="admin-inline-form">
+                            <input type="hidden" id="carPromoId">
+                            <input class="form-input" id="carPromoTitleInput" placeholder="Название акции">
+                            <select class="form-input" id="carPromoCarSelect" required>
+                                <option value="">Выберите автомобиль</option>
+                            </select>
+                            <input class="form-input" id="carPromoPriceInput" type="number" placeholder="Цена по акции" required>
+                            <input class="form-input" id="carPromoStartDateInput" type="date" required>
+                            <input class="form-input" id="carPromoEndDateInput" type="date" required>
+                            <label class="form-checkbox">
+                                <input type="checkbox" id="carPromoActiveInput" checked>
+                                Активна
+                            </label>
+                            <button class="action-btn" type="submit">Сохранить акцию</button>
+                        </form>
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead><tr><th>Автомобиль</th><th>Цена акции</th><th>Период</th><th>Активен</th><th>Действия</th></tr></thead>
+                                <tbody id="carPromoTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div class="admin-block" id="content">
                         <h2 class="block-title">Редактирование информации на сайте</h2>
                         <form id="siteContentForm" class="admin-inline-form admin-content-form">
@@ -304,25 +329,60 @@
             <button class="modal-close" id="closeAddCar">&times;</button>
             <h2>Добавить автомобиль</h2>
             <form id="addCarForm" enctype="multipart/form-data">
-                <input type="text" name="title" placeholder="Название *" required>
+                <input type="text" name="title" placeholder="Название автомобиля *" required>
                 <input type="text" name="brand" placeholder="Марка *" required>
                 <input type="text" name="model" placeholder="Модель *" required>
-                <input type="number" name="year" placeholder="Год">
-                <input type="number" name="pricePerDay" placeholder="Цена в день *" required>
-                <input type="number" name="mileage" placeholder="Пробег">
+                <input type="number" name="year" placeholder="Год выпуска">
+                <input type="number" name="pricePerDay" placeholder="Цена за сутки, ₽ *" required>
+                <input type="number" name="mileage" placeholder="Пробег, км">
                 <input type="text" name="city" placeholder="Город">
-                <input type="text" name="fuelType" placeholder="Топливо">
-                <input type="text" name="transmission" placeholder="Коробка">
+                <input type="text" name="fuelType" placeholder="Тип топлива">
+                <input type="text" name="transmission" placeholder="Коробка передач">
                 <input type="text" name="driveType" placeholder="Привод">
-                <input type="number" name="seats" placeholder="Мест">
-                <input type="text" name="bodyType" placeholder="Кузов">
-                <textarea name="description" placeholder="Описание"></textarea>
-                <textarea name="features" placeholder="Опции через запятую"></textarea>
-                <textarea name="specsJson" placeholder='JSON характеристик, например {"color":"Черный"}'></textarea>
-                <textarea name="priceTiersJson" placeholder='JSON тарифов, например [{"label":"1-8 суток","price":8000}]'></textarea>
-                <label>Фото <input type="file" name="image" accept="image/*" required></label>
+                <input type="number" name="seats" placeholder="Кол-во мест">
+                <input type="text" name="bodyType" placeholder="Тип кузова">
+                <select name="status" class="form-input">
+                    <option value="available">Доступен</option>
+                    <option value="maintenance">Техобслуживание</option>
+                    <option value="rented">В аренде</option>
+                </select>
+                <textarea name="description" placeholder="Описание автомобиля"></textarea>
+                <textarea name="features" placeholder="Опции через запятую, например: кондиционер, навигация, Bluetooth"></textarea>
+                <textarea name="specsText" placeholder="Характеристики простым текстом, по строкам, например: цвет: черный\nдвигатель: 2.0"></textarea>
+                <textarea name="priceTiersText" placeholder="Тарифы простым текстом, по строкам, например: 1-7 дней — 8000\n8-14 дней — 7500"></textarea>
+                <label for="previewImageInput">Фото для карточки (превью) <input id="previewImageInput" type="file" name="previewImage" accept="image/*" required></label>
+                <div class="gallery-upload-fields">
+                    <label>Дополнительное фото 1 <input type="file" name="galleryImages" accept="image/*"></label>
+                    <label>Дополнительное фото 2 <input type="file" name="galleryImages" accept="image/*"></label>
+                    <label>Дополнительное фото 3 <input type="file" name="galleryImages" accept="image/*"></label>
+                    <label>Дополнительное фото 4 <input type="file" name="galleryImages" accept="image/*"></label>
+                    <label>Дополнительное фото 5 <input type="file" name="galleryImages" accept="image/*"></label>
+                </div>
+                <div class="gallery-preview" id="galleryPreviewContainer"></div>
                 <button type="submit" class="btn btn-primary">Добавить</button>
                 <button type="button" class="btn btn-secondary" id="cancelAddCar">Отмена</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="assignPromoModal">
+        <div class="modal-container">
+            <button class="modal-close" id="closeAssignPromo">&times;</button>
+            <h2>Выдать промокод пользователю</h2>
+            <form id="assignPromoForm">
+                <input type="hidden" id="assignPromoUserId">
+                <div class="form-group">
+                    <label>Пользователь:</label>
+                    <p id="assignPromoUserName"></p>
+                </div>
+                <div class="form-group">
+                    <label for="assignPromoSelect">Выберите промокод:</label>
+                    <select id="assignPromoSelect" required>
+                        <option value="">-- Выберите промокод --</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Выдать промокод</button>
+                <button type="button" class="btn btn-secondary" id="cancelAssignPromo">Отмена</button>
             </form>
         </div>
     </div>

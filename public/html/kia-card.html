@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>carzen</title>
+    <title>Автомобиль Kia K5 - Карзен</title>
     <link rel="stylesheet" href="/public/css/st_kia.css">
     <link rel="stylesheet" href="/public/css/st_head_foot_formrent.css">
 </head>
@@ -12,7 +12,7 @@
         <div class="container header-container">
             <a href="#" class="logo">
                 <svg class="logo-icon"></svg>
-                <span>Car</span>Zen
+                <span>Кар</span>Зен
             </a>
             <nav class="nav">
                 <a href="/public/html/menu.html" class="nav-link">Главная</a>
@@ -46,21 +46,23 @@
             <div class="car-header">
                 <h1 class="car-main-title" id="carTitle">Загрузка...</h1>
                 <div class="car-gallery">
-                    <button class="gallery-nav prev" aria-label="Предыдущее фото">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <div class="car-main-image">
-                        <img src="/image/kia-k5.png" alt="Автомобиль" class="main-car-image" id="mainCarImage">
+                    <div class="gallery-slider" id="gallerySlider">
+                        <button class="gallery-nav prev" aria-label="Предыдущее фото">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <div class="slider-image">
+                            <img src="" alt="Фото автомобиля" class="main-car-image" id="sliderImage">
+                        </div>
+                        <button class="gallery-nav next" aria-label="Следующее фото">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                        <div class="gallery-dots" id="galleryDots"></div>
                     </div>
-                    <button class="gallery-nav next" aria-label="Следующее фото">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
                 </div>
-                <div class="gallery-dots" id="galleryDots"></div>
                 <div class="car-actions">
                     <button class="btn-action">Консультация</button>
                     <button class="btn-action btn-primary" id="heroBookBtn">Забронировать</button>
@@ -80,8 +82,9 @@
             <div class="pricing-section">
                 <h2 class="pricing-title">Стоимость</h2>
                 <div class="pricing-wrapper">
-                    <div class="pricing-main">
+                            <div class="pricing-main">
                         <div class="main-price" id="carMainPrice">Загрузка...</div>
+                        <div class="promo-details" id="carPromoLabel" style="display:none;"></div>
                         <button class="btn-book" id="pricingBookBtn">Забронировать</button>
                     </div>
                     <div class="pricing-table" id="pricingTable"></div>
@@ -206,7 +209,7 @@
         <div class="container footer-container">
             <div class="footer-content">
                 <div class="footer-logo-section">
-                    <a href="#" class="footer-logo">Carzen</a>
+                    <a href="#" class="footer-logo">Карзен</a>
                 </div>
                 <div class="footer-columns">
                     <div class="footer-column">

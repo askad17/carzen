@@ -1,3 +1,5 @@
+let currentRentalsFilter = 'all';
+
 document.addEventListener('DOMContentLoaded', async function () {
     const API_URL = '/api';
     const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
@@ -176,15 +178,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         supportForm.addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const message = supportInput.value.trim();
+            const message = supportInput?.value.trim();
             if (!message) {
                 return;
             }
 
             appendSupportMessage(message, 'user', supportChat);
             supportInput.value = '';
-            supportSubmitBtn.disabled = true;
-            supportSubmitBtn.textContent = 'Отправляем...';
+            if (supportSubmitBtn) {
+                supportSubmitBtn.disabled = true;
+                supportSubmitBtn.textContent = 'Отправляем...';
+            }
 
             try {
                 const response = await fetch(`${API_URL}/ai-support`, {
@@ -209,9 +213,86 @@ document.addEventListener('DOMContentLoaded', async function () {
                     supportChat
                 );
             } finally {
-                supportSubmitBtn.disabled = false;
-                supportSubmitBtn.textContent = 'Отправить';
-                supportInput.focus();
+                if (supportSubmitBtn) {
+                    supportSubmitBtn.disabled = false;
+                    supportSubmitBtn.textContent = 'Отправить';
+                }
+                supportInput?.focus();
+            }
+        });
+    }
+
+    const promosModal = document.getElementById('promosModal');
+    const promosTrigger = document.querySelector('.promos-trigger');
+    const promosModalClose = document.querySelector('.promos-modal-close');
+
+    if (promosTrigger && promosModal) {
+        promosTrigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            loadUserPromos();
+            openModal(promosModal);
+        });
+    }
+
+    if (promosModalClose) {
+        promosModalClose.addEventListener('click', function () {
+            closeModal(promosModal);
+        });
+    }
+
+    if (promosModal) {
+        promosModal.addEventListener('click', function (event) {
+            if (event.target === promosModal) {
+                closeModal(promosModal);
+            }
+        });
+    }
+
+    const rentalsModal = document.getElementById('rentalsModal');
+    const rentalsTrigger = document.querySelector('.rentals-trigger');
+    const rentalsModalClose = document.querySelector('.rentals-modal-close');
+
+    if (rentalsTrigger && rentalsModal) {
+        rentalsTrigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            loadUserRentals();
+            openModal(rentalsModal);
+        });
+    }
+
+    if (rentalsModalClose) {
+        rentalsModalClose.addEventListener('click', function () {
+            closeModal(rentalsModal);
+        });
+    }
+
+    if (rentalsModal) {
+        rentalsModal.addEventListener('click', function (event) {
+            if (event.target === rentalsModal) {
+                closeModal(rentalsModal);
+            }
+        });
+
+        document.querySelectorAll('.rentals-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.rentals-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentRentalsFilter = this.dataset.filter;
+                filterRentals(currentRentalsFilter);
+            });
+        });
+    }
+
+    if (promosModalClose) {
+        promosModalClose.addEventListener('click', function () {
+            closeModal(promosModal);
+        });
+    }
+
+    if (promosModal) {
+        promosModal.addEventListener('click', function (event) {
+            if (event.target === promosModal) {
+                closeModal(promosModal);
             }
         });
     }
@@ -221,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             return;
         }
 
-        [userInfoModal, editProfileModal, supportModal].forEach((modal) => {
+        [userInfoModal, editProfileModal, supportModal, promosModal].forEach((modal) => {
             if (modal?.classList.contains('active')) {
                 closeModal(modal);
             }
@@ -235,6 +316,71 @@ document.addEventListener('DOMContentLoaded', async function () {
         fillModalData(user);
     }
 });
+
+async function loadUserPromos() {
+    const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
+    const API_URL = '/api';
+    const promosList = document.getElementById('promosList');
+
+    try {
+        const response = await fetch(`${API_URL}/user/promos`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load promos');
+        }
+
+        const data = await response.json();
+        const promos = data.promos || [];
+
+        if (promos.length === 0) {
+            promosList.innerHTML = '<div class="promos-empty"><p>У вас пока нет промокодов</p></div>';
+            return;
+        }
+
+        promosList.innerHTML = promos.map(promo => {
+            const expiresDate = promo.expiresAt || promo.userPromoExpires
+                ? new Date(promo.expiresAt || promo.userPromoExpires).toLocaleDateString('ru-RU')
+                : 'Не ограничен';
+
+            return `
+                <div class="promo-card">
+                    <div class="promo-info">
+                        <div class="promo-code-display" data-code="${promo.code}">${promo.code}</div>
+                        <div class="promo-details">
+                            <p class="promo-title">${promo.title || 'Промокод'}</p>
+                            <p class="promo-discount">Скидка ${promo.discountPercent}%</p>
+                            <p class="promo-expires">Срок: ${expiresDate}</p>
+                        </div>
+                    </div>
+                    <button class="promo-copy-btn" data-code="${promo.code}">Скопировать</button>
+                </div>
+            `;
+        }).join('');
+
+        // Add copy button handlers
+        document.querySelectorAll('.promo-copy-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const code = this.dataset.code;
+                navigator.clipboard.writeText(code).then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = 'Скопировано!';
+                    this.classList.add('copied');
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.classList.remove('copied');
+                    }, 2000);
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Load promos error:', error);
+        promosList.innerHTML = '<div class="promos-empty"><p>Ошибка загрузки промокодов</p></div>';
+    }
+}
 
 function openModal(modal) {
     if (!modal) {
@@ -330,8 +476,11 @@ function fillModalData(user) {
 function fillEditForm(user) {
     const avatarPreview = document.getElementById('editAvatarPreview');
     const avatarInput = document.getElementById('editAvatar');
+    const loginInput = document.getElementById('editLogin');
     const firstNameInput = document.getElementById('editFirstName');
     const lastNameInput = document.getElementById('editLastName');
+    const passwordInput = document.getElementById('editPassword');
+    const passwordConfirmInput = document.getElementById('editPasswordConfirm');
     const middleNameInput = document.getElementById('editMiddleName');
     const phoneInput = document.getElementById('editPhone');
     const emailInput = document.getElementById('editEmail');
@@ -345,12 +494,155 @@ function fillEditForm(user) {
         avatarInput.value = '';
     }
 
+    if (loginInput) loginInput.value = user.login || '';
     if (firstNameInput) firstNameInput.value = user.firstName || '';
     if (lastNameInput) lastNameInput.value = user.lastName || '';
+    if (passwordInput) passwordInput.value = '';
+    if (passwordConfirmInput) passwordConfirmInput.value = '';
     if (middleNameInput) middleNameInput.value = user.middleName || '';
     if (phoneInput) phoneInput.value = user.phone || '';
     if (emailInput) emailInput.value = user.email || '';
     if (birthDateInput) birthDateInput.value = user.birthDate || '';
+}
+
+let userBookings = [];
+
+async function loadUserRentals() {
+    const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
+    const rentalsList = document.getElementById('rentalsList');
+    if (!rentalsList) return;
+
+    try {
+        const response = await fetch('/api/bookings/my', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Не удалось загрузить аренды');
+        }
+        userBookings = data.bookings || [];
+        filterRentals(currentRentalsFilter);
+    } catch (error) {
+        console.error('Load user rentals error:', error);
+        rentalsList.innerHTML = '<div class="rentals-empty"><p>Не удалось загрузить аренды.</p></div>';
+    }
+}
+
+function filterRentals(filter) {
+    const today = new Date().toISOString().slice(0, 10);
+    let filtered = userBookings.slice();
+
+    if (filter === 'current') {
+        filtered = filtered.filter((booking) => {
+            return booking.status !== 'cancelled' && booking.endDate >= today && booking.startDate <= today;
+        });
+    } else if (filter === 'past') {
+        filtered = filtered.filter((booking) => {
+            return booking.status === 'cancelled' || booking.endDate < today;
+        });
+    }
+
+    renderRentals(filtered);
+}
+
+function renderRentals(bookings) {
+    const rentalsList = document.getElementById('rentalsList');
+    if (!rentalsList) return;
+
+    if (!bookings.length) {
+        rentalsList.innerHTML = '<div class="rentals-empty"><p>У вас пока нет аренд по выбранному фильтру</p></div>';
+        return;
+    }
+
+    rentalsList.innerHTML = bookings.map((booking) => {
+        const statusText = getBookingStatusText(booking.status);
+        const optionsText = Array.isArray(booking.selectedOptions) && booking.selectedOptions.length
+            ? booking.selectedOptions.map((option) => option.title || `Опция ${option.id}`).join(', ')
+            : 'Нет дополнительных опций';
+        const carTitle = booking.carTitle || 'Автомобиль';
+        const carModel = booking.carBrand || '';
+        const totalPrice = new Intl.NumberFormat('ru-RU').format(booking.totalPrice || 0);
+
+        return `
+            <div class="rentals-card">
+                <div class="rentals-card-header">
+                    <div>
+                        <h3>${carTitle}</h3>
+                        <p>${carModel}</p>
+                    </div>
+                    <span class="status ${booking.status}">${statusText}</span>
+                </div>
+                <div class="rentals-card-body">
+                    <p><strong>Даты:</strong> ${booking.startDate} — ${booking.endDate}</p>
+                    <p><strong>Сумма:</strong> ${totalPrice} ₽</p>
+                    <p><strong>Опции:</strong> ${optionsText}</p>
+                    <p><strong>Email:</strong> ${booking.customerEmail || 'Не указан'}</p>
+                    <p><strong>Телефон:</strong> ${booking.customerPhone || 'Не указан'}</p>
+                </div>
+                <div class="rentals-card-actions">
+                    ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
+                    <button class="btn btn-primary view-booking-btn" data-id="${booking.id}">Подробнее</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    rentalsList.querySelectorAll('.cancel-booking-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = button.dataset.id;
+            if (!confirm('Отменить бронирование?')) return;
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('carzen_token') || localStorage.getItem('token')}`
+                    }
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Не удалось отменить бронирование');
+                await loadUserRentals();
+            } catch (error) {
+                console.error('Cancel booking failed:', error);
+                alert(error.message || 'Ошибка отмены бронирования');
+            }
+        });
+    });
+
+    rentalsList.querySelectorAll('.view-booking-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = button.dataset.id;
+            viewBookingDetails(bookingId);
+        });
+    });
+}
+
+function getBookingStatusText(status) {
+    switch (status) {
+        case 'pending': return 'Ожидает';
+        case 'payment_link_sent': return 'Ссылка отправлена';
+        case 'paid': return 'Оплачено';
+        case 'cancelled': return 'Отменено';
+        default: return status;
+    }
+}
+
+async function viewBookingDetails(bookingId) {
+    try {
+        const response = await fetch(`/api/bookings/${bookingId}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('carzen_token') || localStorage.getItem('token')}`
+            }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Не удалось загрузить детали бронирования');
+        const booking = data.booking;
+        alert(`Бронирование #${booking.id}\nАвто: ${booking.carTitle} ${booking.carBrand || ''} ${booking.carModel || ''}\nДаты: ${booking.startDate} - ${booking.endDate}\nСтатус: ${getBookingStatusText(booking.status)}\nСумма: ${new Intl.NumberFormat('ru-RU').format(booking.totalPrice || 0)} ₽`);
+    } catch (error) {
+        console.error('View booking details error:', error);
+        alert(error.message || 'Не удалось получить детали бронирования');
+    }
 }
 
 function formatFullName(user) {
