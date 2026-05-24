@@ -234,22 +234,22 @@ async function sendBookingEmail(booking, car) {
   }
 
   const html = `
-    <h1>Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ</h1>
-    <p>Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ, ${escapeHtml(booking.customerName)}.</p>
-    <p>Р’Р°С€Рµ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕРїР»Р°С‡РµРЅРѕ.</p>
-    <ul>
-      <li>РђРІС‚РѕРјРѕР±РёР»СЊ: ${escapeHtml(car.title)}</li>
-      <li>Р”Р°С‚С‹: ${escapeHtml(booking.startDate)} - ${escapeHtml(booking.endDate)}</li>
-      <li>РЎСѓРјРјР°: ${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} СЂСѓР±.</li>
-      <li>РЎС‚Р°С‚СѓСЃ: РѕРїР»Р°С‡РµРЅРѕ</li>
-    </ul>
-    <p>РЎРїР°СЃРёР±Рѕ, С‡С‚Рѕ РІС‹Р±СЂР°Р»Рё Carzen.</p>
-  `;
+  <h1>Carzen: бронирование подтверждено</h1>
+  <p>Здравствуйте, ${escapeHtml(booking.customerName)}.</p>
+  <p>Ваше бронирование оплачено.</p>
+  <ul>
+    <li>Автомобиль: ${escapeHtml(car.title)}</li>
+    <li>Даты: ${escapeHtml(booking.startDate)} - ${escapeHtml(booking.endDate)}</li>
+    <li>Сумма: ${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} руб.</li>
+    <li>Статус: оплачено</li>
+  </ul>
+  <p>Спасибо, что выбрали Carzen.</p>
+`;
 
   const info = await mailTransport.sendMail({
     from: 'no-reply@carzen.local',
     to: booking.customerEmail,
-    subject: 'Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ',
+    subject: 'Carzen: бронирование подтверждено',
     html
   });
 
@@ -260,7 +260,7 @@ async function sendBookingEmail(booking, car) {
   await addNotification({
     channel: 'email',
     recipient: booking.customerEmail,
-    subject: 'Carzen: Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРѕ',
+    subject: 'Carzen: бронирование подтверждено',
     content: html,
     status: 'preview_saved',
     externalId: `/public/mail-previews/${filename}`
@@ -315,16 +315,16 @@ async function ensureDefaultData() {
   }
 
   const siteContentDefaults = {
-    hero_title: 'РђСЂРµРЅРґР° Р°РІС‚РѕРјРѕР±РёР»РµР№ Р»РµРіРєРѕ',
-    hero_subtitle: 'Р’С‹Р±РµСЂРёС‚Рµ РёРґРµР°Р»СЊРЅС‹Р№ Р°РІС‚РѕРјРѕР±РёР»СЊ РґР»СЏ РІР°С€РёС… Р·Р°РґР°С‡',
-    support_phone: '+7 (999) 123-45-67',
-    support_email: 'carzen@ya.ru',
-    footer_address_1: 'РћСЂРµРЅР±СѓСЂРі, СѓР». РџРѕР±РµРґС‹, 157Р‘',
-    footer_address_2: 'Р•РєР°С‚РµСЂРёРЅР±СѓСЂРі, РїСЂ. Р›РµРЅРёРЅР°, 68/1',
-    footer_address_3: 'РљР°Р·Р°РЅСЊ, СѓР». Р‘Р°СѓРјР°РЅР°, 23Рђ',
-    promo_label: 'РЎРєРёРґРєР° 7% РїРѕ РїСЂРѕРјРѕРєРѕРґСѓ',
-    promo_code: 'FIRSTCARZEN'
-  };
+  hero_title: 'Аренда автомобилей легко',
+  hero_subtitle: 'Выберите идеальный автомобиль для ваших задач',
+  support_phone: '+7 (999) 123-45-67',
+  support_email: 'carzen@ya.ru',
+  footer_address_1: 'Оренбург, ул. Победы, 157Б',
+  footer_address_2: 'Екатеринбург, пр. Ленина, 68/1',
+  footer_address_3: 'Казань, ул. Баумана, 23А',
+  promo_label: 'Скидка 7% по промокоду',
+  promo_code: 'FIRSTCARZEN'
+};
 
   for (const [key, value] of Object.entries(siteContentDefaults)) {
     await dbRun(
@@ -336,12 +336,12 @@ async function ensureDefaultData() {
   const extraOptionsCount = await dbGet('SELECT COUNT(*) as total FROM extra_options');
   if (!extraOptionsCount || !extraOptionsCount.total) {
     const now = getMySQLDateTime();
-    const defaults = [
-      ['child-seat', 'Р”РµС‚СЃРєРѕРµ РєСЂРµСЃР»Рѕ', 600, 'once', 1, 1, now],
-      ['navigator', 'GPS-РЅР°РІРёРіР°С‚РѕСЂ', 350, 'day', 1, 2, now],
-      ['second-driver', 'Р’С‚РѕСЂРѕР№ РІРѕРґРёС‚РµР»СЊ', 1200, 'once', 1, 3, now],
-      ['full-insurance', 'Р Р°СЃС€РёСЂРµРЅРЅР°СЏ Р·Р°С‰РёС‚Р°', 900, 'day', 1, 4, now]
-    ];
+      const defaults = [
+        ['child-seat', 'Детское кресло', 600, 'once', 1, 1, now],
+        ['navigator', 'GPS-навигатор', 350, 'day', 1, 2, now],
+        ['second-driver', 'Второй водитель', 1200, 'once', 1, 3, now],
+        ['full-insurance', 'Расширенная защита', 900, 'day', 1, 4, now]
+      ];
     for (const option of defaults) {
       await dbRun(
         `INSERT INTO extra_options (code, title, price, chargeType, isActive, sortOrder, createdAt)
@@ -356,7 +356,7 @@ async function ensureDefaultData() {
     await dbRun(
       `INSERT INTO promo_codes (code, title, discountPercent, isActive, createdAt)
        VALUES (?, ?, ?, ?, ?)`,
-      ['FIRSTCARZEN', 'РџСЂРёРІРµС‚СЃС‚РІРµРЅРЅС‹Р№ РїСЂРѕРјРѕРєРѕРґ', 7, 1, getMySQLDateTime()]
+      ['FIRSTCARZEN', 'Приветственный промокод', 7, 1, getMySQLDateTime()]
     );
   }
 
@@ -371,22 +371,22 @@ async function ensureDefaultData() {
         year: 2022,
         pricePerDay: 10000,
         mileage: 12000,
-        fuelType: 'Р‘РµРЅР·РёРЅ',
-        transmission: 'РђРљРџРџ',
-        driveType: 'РџРѕР»РЅС‹Р№',
+        fuelType: 'Бензин',
+        transmission: 'АКПП',
+        driveType: 'Полный',
         seats: 5,
-        bodyType: 'РљСѓРїРµ',
-        city: 'Р•РєР°С‚РµСЂРёРЅР±СѓСЂРі',
-        description: 'РЎРїРѕСЂС‚РёРІРЅРѕРµ РєСѓРїРµ РґР»СЏ С‚РµС…, РєС‚Рѕ С…РѕС‡РµС‚ СЌРјРѕС†РёР№ Рё РєРѕРјС„РѕСЂС‚РЅРѕР№ РїРѕРІСЃРµРґРЅРµРІРЅРѕР№ РµР·РґС‹.',
-        features: 'РљР»РёРјР°С‚-РєРѕРЅС‚СЂРѕР»СЊ,РљР°РјРµСЂР° 360,CarPlay',
+        bodyType: 'Купе',
+        city: 'Екатеринбург',
+        description: 'Спорттивное купе для тех, кто хочет эмоций и комфортной езды.',
+        features: 'Климат-контроль,Камера 360,CarPlay',
         imageUrl: '/image/bmw_m440-2.png',
         galleryJson: JSON.stringify(['/image/bmw_m440-2.png']),
-        specsJson: JSON.stringify({ category: 'РџСЂРµРјРёСѓРј', power: '387 Р».СЃ.', engineVolume: '3.0 Р»РёС‚СЂР°', color: 'РЎРёРЅРёР№' }),
+        specsJson: JSON.stringify({ category: 'Премиум', power: '387 л.с.', engineVolume: '3.0 литра', color: 'Синий' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 СЃСѓС‚РѕРє', price: 10000 },
-          { label: '9-15 СЃСѓС‚РѕРє', price: 9500 },
-          { label: '16-30 СЃСѓС‚РѕРє', price: 9000 },
-          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 8600 }
+          { label: '1-8 суток', price: 10000 },
+          { label: '9-15 суток', price: 9500 },
+          { label: '16-30 суток', price: 9000 },
+          { label: 'от 31 суток', price: 8600 }
         ])
       },
       {
@@ -396,22 +396,22 @@ async function ensureDefaultData() {
         year: 2021,
         pricePerDay: 3500,
         mileage: 14000,
-        fuelType: 'Р‘РµРЅР·РёРЅ',
-        transmission: 'РђРљРџРџ',
-        driveType: 'РџРµСЂРµРґРЅРёР№',
+        fuelType: 'Бензин',
+        transmission: 'АКПП',
+        driveType: 'Полный',
         seats: 5,
-        bodyType: 'РЎРµРґР°РЅ',
-        city: 'РћСЂРµРЅР±СѓСЂРі',
-        description: 'Р­РєРѕРЅРѕРјРёС‡РЅС‹Р№ РіРѕСЂРѕРґСЃРєРѕР№ Р°РІС‚РѕРјРѕР±РёР»СЊ СЃ РїСЂРѕСЃС‚С‹Рј Рё РїРѕРЅСЏС‚РЅС‹Рј СѓРїСЂР°РІР»РµРЅРёРµРј.',
-        features: 'РљРѕРЅРґРёС†РёРѕРЅРµСЂ,РџРѕРґРѕРіСЂРµРІ СЃРёРґРµРЅРёР№,USB',
+        bodyType: 'Седан',
+        city: 'Оренбург',
+        description: 'Экономичный городской автомобиль с простым и понятным управлением.',
+        features: 'Кондиционер,Подогрев сидений,USB',
         imageUrl: '/image/hyundai.png',
         galleryJson: JSON.stringify(['/image/hyundai.png']),
-        specsJson: JSON.stringify({ category: 'РљРѕРјС„РѕСЂС‚', power: '123 Р».СЃ.', engineVolume: '1.6 Р»РёС‚СЂР°', color: 'Р‘РµР»С‹Р№' }),
+        specsJson: JSON.stringify({ category: 'Комфорт', power: '123 л.с.', engineVolume: '1.6 литра', color: 'Белый' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 СЃСѓС‚РѕРє', price: 3500 },
-          { label: '9-15 СЃСѓС‚РѕРє', price: 3300 },
-          { label: '16-30 СЃСѓС‚РѕРє', price: 3100 },
-          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 2900 }
+          { label: '1-8 суток', price: 3500 },
+          { label: '9-15 суток', price: 3300 },
+          { label: '16-30 суток', price: 3100 },
+          { label: 'от 31 суток', price: 2900 }
         ])
       },
       {
@@ -421,22 +421,22 @@ async function ensureDefaultData() {
         year: 2020,
         pricePerDay: 8000,
         mileage: 17000,
-        fuelType: 'Р‘РµРЅР·РёРЅ',
-        transmission: 'РђРљРџРџ',
-        driveType: 'РџРµСЂРµРґРЅРёР№',
+        fuelType: 'Бензин',
+        transmission: 'АКПП',
+        driveType: 'Полный',
         seats: 5,
-        bodyType: 'РЎРµРґР°РЅ',
-        city: 'РљР°Р·Р°РЅСЊ',
-        description: 'РЎС‚РёР»СЊРЅС‹Р№ Р±РёР·РЅРµСЃ-СЃРµРґР°РЅ РґР»СЏ РіРѕСЂРѕРґР° Рё С‚СЂР°СЃСЃС‹. РџРѕРґС…РѕРґРёС‚ РґР»СЏ РґРµР»РѕРІС‹С… РїРѕРµР·РґРѕРє Рё Р°СЂРµРЅРґС‹ РЅР° РєР°Р¶РґС‹Р№ РґРµРЅСЊ.',
-        features: 'РљР»РёРјР°С‚-РєРѕРЅС‚СЂРѕР»СЊ,РџРѕРґРѕРіСЂРµРІ СЃРёРґРµРЅРёР№,CarPlay,РљР°РјРµСЂР° Р·Р°РґРЅРµРіРѕ РІРёРґР°',
+        bodyType: 'Седан',
+        city: 'Казань',
+        description: 'Стильный бизнес-седан для города и трассы. Подходит для деловых поездок и аренда на каждый день.',
+        features: 'Климат-контроль,Подогрев сидений,CarPlay,Камера заднего вида',
         imageUrl: '/image/kia-k5.png',
         galleryJson: JSON.stringify(['/image/kia-k5.png', '/image/kia-k5-2.png', '/image/kia-cabin.png']),
-        specsJson: JSON.stringify({ category: 'РљРѕРјС„РѕСЂС‚', power: '150 Р».СЃ.', engineVolume: '2.0 Р»РёС‚СЂР°', color: 'Р§РµСЂРЅС‹Р№', minRentPeriod: '1 СЃСѓС‚РєРё' }),
+        specsJson: JSON.stringify({ category: 'Комфорт', power: '150 л.с.', engineVolume: '2.0 литра', color: 'Черный', minRentPeriod: '1 суток' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 СЃСѓС‚РѕРє', price: 8000 },
-          { label: '9-15 СЃСѓС‚РѕРє', price: 7500 },
-          { label: '16-30 СЃСѓС‚РѕРє', price: 7000 },
-          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 6500 }
+          { label: '1-8 суток', price: 8000 },
+          { label: '9-15 суток', price: 7500 },
+          { label: '16-30 суток', price: 7000 },
+          { label: 'от 31 суток', price: 6500 }
         ])
       },
       {
@@ -446,22 +446,22 @@ async function ensureDefaultData() {
         year: 2023,
         pricePerDay: 7000,
         mileage: 12000,
-        fuelType: 'Р‘РµРЅР·РёРЅ',
-        transmission: 'РђРљРџРџ',
-        driveType: 'РџРѕР»РЅС‹Р№',
+        fuelType: 'Бензин',
+        transmission: 'АКПП',
+        driveType: 'Полный',
         seats: 5,
-        bodyType: 'РљСЂРѕСЃСЃРѕРІРµСЂ',
-        city: 'РњРѕСЃРєРІР°',
-        description: 'РџСЂР°РєС‚РёС‡РЅС‹Р№ РєСЂРѕСЃСЃРѕРІРµСЂ РґР»СЏ РїРѕРµР·РґРѕРє РїРѕ РіРѕСЂРѕРґСѓ Рё Р·Р° РµРіРѕ РїСЂРµРґРµР»С‹.',
-        features: 'РџРѕР»РЅС‹Р№ РїСЂРёРІРѕРґ,РљСЂСѓРёР·-РєРѕРЅС‚СЂРѕР»СЊ,Р‘РѕР»СЊС€РѕР№ Р±Р°РіР°Р¶РЅРёРє',
+        bodyType: 'Кроссовер',
+        city: 'Москва',
+        description: 'Практичный кроссовер для поездок по городу и за его пределами.',
+        features: 'Полный привод,Криз-контроль,Большой багажник',
         imageUrl: '/image/toyota-rav4.png',
         galleryJson: JSON.stringify(['/image/toyota-rav4.png']),
-        specsJson: JSON.stringify({ category: 'SUV', power: '199 Р».СЃ.', engineVolume: '2.5 Р»РёС‚СЂР°', color: 'РЎРµСЂС‹Р№' }),
+        specsJson: JSON.stringify({ category: 'SUV', power: '199 л.с.', engineVolume: '2.5 литра', color: 'Серый' }),
         priceTiersJson: JSON.stringify([
-          { label: '1-8 СЃСѓС‚РѕРє', price: 7000 },
-          { label: '9-15 СЃСѓС‚РѕРє', price: 6700 },
-          { label: '16-30 СЃСѓС‚РѕРє', price: 6300 },
-          { label: 'РѕС‚ 31 СЃСѓС‚РѕРє', price: 5900 }
+          { label: '1-8 суток', price: 7000 },
+          { label: '9-15 суток', price: 6700 },
+          { label: '16-30 суток', price: 6300 },
+          { label: 'от 31 суток', price: 5900 }
         ])
       }
     ];
@@ -658,26 +658,26 @@ function generateToken(user) {
 
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'РќРµС‚ Р·Р°РіРѕР»РѕРІРєР°' });
+  if (!authHeader) return res.status(401).json({ error: 'Нет заголовка'});
   const [type, token] = authHeader.split(' ');
-  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚' });
+  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'Неверный формат' });
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     const row = await dbGet('SELECT id, role FROM users WHERE id = ?', [payload.id]);
-    if (!row) return res.status(401).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!row) return res.status(401).json({ error: 'Пользователь не найден' });
     req.userId = row.id;
     req.userRole = row.role;
     req.isAdmin = row.role === 'admin';
     return next();
   } catch (error) {
-    return res.status(401).json({ error: 'РќРµРґРµР№СЃС‚РІРёС‚РµР»СЊРЅС‹Р№ С‚РѕРєРµРЅ' });
+    return res.status(401).json({ error: 'Недействительный токен' });
   }
 }
 
 function adminOnly(req, res, next) {
   if (req.userRole !== 'admin') {
-    return res.status(403).json({ error: 'Р”РѕСЃС‚СѓРї С‚РѕР»СЊРєРѕ РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ' });
+    return res.status(403).json({ error: 'Доступ только для администраторов' });
   }
   return next();
 }
@@ -697,7 +697,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter(req, file, cb) {
     if (file.mimetype.startsWith('image/')) return cb(null, true);
-    return cb(new Error('РўРѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ'));
+    return cb(new Error('Только изображения разрешены'));
   }
 });
 
@@ -801,13 +801,13 @@ app.post('/api/register', async (req, res) => {
   try {
     const { login, password, passwordConfirm, firstName, lastName, middleName, phone, email, birthDate } = req.body;
     if (!login || !password || !passwordConfirm || !firstName || !lastName || !email || !birthDate) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРµРЅС‹ РЅРµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
+      return res.status(400).json({ error: 'Заполнены не все обязательные поля' });
     }
     if (password !== passwordConfirm) {
-      return res.status(400).json({ error: 'РџР°СЂРѕР»Рё РЅРµ СЃРѕРІРїР°РґР°СЋС‚' });
+      return res.status(400).json({ error: 'Пароли не совпадают' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ' });
+      return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' });
     }
 
     const createdAt = getMySQLDateTime();
@@ -821,10 +821,10 @@ app.post('/api/register', async (req, res) => {
     return res.json({ token: generateToken(user), user: mapUserRow(user) });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј Р»РѕРіРёРЅРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
+      return res.status(400).json({ error: 'Пользователь с таким логином уже существует' });
     }
     console.error('Register error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё СЂРµРіРёСЃС‚СЂР°С†РёРё' });
+    return res.status(500).json({ error: 'Ошибка сервера при регистрации' });
   }
 });
 
@@ -832,36 +832,36 @@ app.post('/api/login', async (req, res) => {
   try {
     const { login, password } = req.body;
     if (!login || !password) {
-      return res.status(400).json({ error: 'Р’РІРµРґРёС‚Рµ Р»РѕРіРёРЅ Рё РїР°СЂРѕР»СЊ' });
+      return res.status(400).json({ error: 'Введите логин и пароль' });
     }
     const userRow = await dbGet('SELECT * FROM users WHERE login = ?', [login]);
     if (!userRow || !bcrypt.compareSync(password, userRow.passwordHash)) {
-      return res.status(401).json({ error: 'РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ' });
+      return res.status(401).json({ error: 'Неверный логин или пароль' });
     }
     const user = mapUserRow(userRow);
     await logActivity('user_login', { userId: user.id });
     return res.json({ token: generateToken(user), user });
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё РІС…РѕРґРµ' });
+    return res.status(500).json({ error: 'Ошибка сервера при входе' });
   }
 });
 
 app.get('/api/me', authMiddleware, async (req, res) => {
   try {
     const row = await dbGet('SELECT * FROM users WHERE id = ?', [req.userId]);
-    if (!row) return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!row) return res.status(404).json({ error: 'Пользователь не найден' });
     return res.json({ user: mapUserRow(row) });
   } catch (error) {
     console.error('Me error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
 app.put('/api/me', authMiddleware, upload.single('avatar'), async (req, res) => {
   try {
     const current = await dbGet('SELECT * FROM users WHERE id = ?', [req.userId]);
-    if (!current) return res.status(404).json({ error: 'User not found' });
+    if (!current) return res.status(404).json({ error: 'Пользователь не найден' });
 
     const firstName = String(req.body.firstName ?? current.firstName).trim();
     const lastName = String(req.body.lastName ?? current.lastName).trim();
@@ -872,7 +872,7 @@ app.put('/api/me', authMiddleware, upload.single('avatar'), async (req, res) => 
     const avatarUrl = req.file ? `/image/${req.file.filename}` : (current.avatarUrl || '/image/acc.jpeg');
 
     if (!firstName || !lastName || !email) {
-      return res.status(400).json({ error: 'First name, last name and email are required' });
+      return res.status(400).json({ error: 'Имя, фамилия и email являются обязательными' });
     }
 
     await dbRun(
@@ -887,7 +887,7 @@ app.put('/api/me', authMiddleware, upload.single('avatar'), async (req, res) => 
     return res.json({ success: true, user: mapUserRow(updated) });
   } catch (error) {
     console.error('Profile update error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РїСЂРѕС„РёР»СЊ' });
+    return res.status(500).json({ error: 'Не удалось обновить профиль' });
   }
 });
 
@@ -896,7 +896,7 @@ app.get('/api/site-content', async (req, res) => {
     return res.json({ content: await getSiteContentMap() });
   } catch (error) {
     console.error('Site content error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
+    return res.status(500).json({ error: 'Не удалось загрузить контент сайта' });
   }
 });
 
@@ -904,7 +904,7 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { city, name, phone } = req.body;
     if (!city || !name || !phone) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ' });
+      return res.status(400).json({ error: 'Заполните все поля' });
     }
     const createdAt = getMySQLDateTime();
     const result = await dbRun(
@@ -915,14 +915,14 @@ app.post('/api/consultation', async (req, res) => {
     await addNotification({
       channel: 'admin',
       recipient: 'admin',
-      subject: 'РќРѕРІР°СЏ Р·Р°СЏРІРєР° РЅР° РєРѕРЅСЃСѓР»СЊС‚Р°С†РёСЋ',
+      subject: 'Новая заявка на консультацию',
       content: `${name}, ${phone}, ${city}`,
       status: 'created'
     });
-    return res.json({ success: true, message: 'Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР°!' });
+    return res.json({ success: true, message: 'Заявка отправлена!' });
   } catch (error) {
     console.error('Consultation error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка БД' });
   }
 });
 
@@ -930,7 +930,7 @@ app.post('/api/ai-support', async (req, res) => {
   try {
     const { message } = req.body;
     if (!message || typeof message !== 'string') {
-      return res.status(400).json({ error: 'РЎРѕРѕР±С‰РµРЅРёРµ РЅРµ РїРµСЂРµРґР°РЅРѕ' });
+      return res.status(400).json({ error: 'Сообщение не передано' });
     }
 
     const normalizedMessage = String(message)
@@ -939,48 +939,48 @@ app.post('/api/ai-support', async (req, res) => {
       .replace(/\s+/g, ' ')
       .trim();
 
-    const patterns = {
-      greeting: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i,
-      price: /\b(?:пїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ[пїЅпїЅпїЅ]?)\b/i,
-      booking: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅ[пїЅпїЅ]|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ[пїЅпїЅпїЅ]?)\b/i,
-      delivery: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
-      insurance: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
-      cancellation: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
-      documents: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
-      fuel: /\b(?:пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i,
-      accident: /\b(?:пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\b/i,
-      promo: /\b(?:пїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅпїЅпїЅ|пїЅпїЅпїЅ)\b/i
-    };
+   const patterns = {
+  greeting: /\b(?:привет|здравствуйте|добрый день|добрый вечер|салют)\b/i,
+  price: /\b(?:цена|стоимость|сколько|тариф|прайс|цены?)\b/i,
+  booking: /\b(?:бронь|забронировать|аренда|бронирование|забронирую?)\b/i,
+  delivery: /\b(?:доставка|привезти|подача|доставить|самовывоз)\b/i,
+  insurance: /\b(?:страховка|осаго|каско|страхование|страховки)\b/i,
+  cancellation: /\b(?:отмена|отменить|возврат|аннулировать)\b/i,
+  documents: /\b(?:документы|паспорт|права|водительское)\b/i,
+  fuel: /\b(?:топливо|бензин|бак|дизель)\b/i,
+  accident: /\b(?:дтп|авария|повреждение|столкновение|происшествие)\b/i,
+  promo: /\b(?:промокод|скидка|купон|акция)\b/i
+};
 
     let reply = '';
 
     if (patterns.greeting.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅ! пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ Carzen. пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?';
+      reply = 'Привет! Это Carzen. Как я могу вам помочь?';
     } else if (patterns.price.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+      reply = 'Цены на наши услуги вы можете посмотреть на нашем сайте. Для получения более подробной информации, пожалуйста, свяжитесь с нами по телефону: +79123420973';
     } else if (patterns.booking.test(normalizedMessage)) {
-      reply = '1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n2. пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ\n3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ\n4. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n5. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+      reply = '1. Забронировать автомобиль\n2. Узнать о доступных моделях\n3. Получить информацию о ценах\n4. Заказать обратный звонок\n5. Оставить заявку на консультацию\n\nДля бронирования автомобиля, пожалуйста, свяжитесь с нами по телефону: +79123420973';
     } else if (patterns.delivery.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ  пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅ. пїЅпїЅпїЅпїЅпїЅ, 42\nпїЅ  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+      reply = 'Информация о доставке:\nАдрес: ул. Пушкина, д. 42\nТелефон: +79123420973';
     } else if (patterns.insurance.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅ пїЅ 500 /пїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 1000 \nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 200 /пїЅпїЅпїЅпїЅ';
+      reply = 'Информация о страховке:\nОСАГО: 500 / год\nКАСКО: 1000 / год\nСтрахование ответственности: 200 / год';
     } else if (patterns.cancellation.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅ 24 пїЅпїЅпїЅпїЅпїЅ пїЅ 100% пїЅпїЅпїЅпїЅпїЅпїЅпїЅ\nпїЅ 6-24 пїЅпїЅпїЅпїЅ пїЅ 50% пїЅпїЅпїЅпїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅ 6 пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n\nпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+      reply = 'Информация об отмене бронирования:\nОтмена за 24 часа до прибытия: 100% возврат\nОтмена за 6-24 часа до прибытия: 50% возврат\nОтмена менее чем за 6 часов: нет возврата\n\nТелефон для консультаций: +79123420973';
     } else if (patterns.documents.test(normalizedMessage)) {
-      reply = 'пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ \nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ. B)\nпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 21 пїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ';
+      reply = 'Необходимые документы:\nПаспорт\nВодительские права (категория B)\nВодительское удостоверение';
     } else if (patterns.fuel.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅ:\nпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ\nпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ +200 \n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!';
+      reply = 'Информация о топливе:\nБензин: 500 / литр\nДизель: 1000 / литр\nСтрахование ответственности: 200 / литр';
     } else if (patterns.accident.test(normalizedMessage)) {
-      reply = 'пїЅпїЅ пїЅ:\n1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ\n2. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ: +79123420973\n3. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ \n\nпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ';
+      reply = 'Информация о ДТП:\n1. Сообщить о происшествии\n2. Связаться с нами: +79123420973\n3. Получить информацию о страховых выплатах\n\nДля получения более подробной информации, пожалуйста, свяжитесь с нами по телефону: +79123420973';
     } else if (patterns.promo.test(normalizedMessage)) {
-      reply = 'пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.';
+      reply = 'Актуальные предложения и скидки:\nпїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ… пЇ…';
     } else {
-      reply = 'пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: +79123420973';
+      reply = 'Извините, я не понимаю ваш запрос. Пожалуйста, свяжитесь с нами по телефону: +79123420973';
     }
 return res.json({ success: true, reply });
   } catch (error) {
     console.error('AI support error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ Р·Р°РїСЂРѕСЃР°' });
+    return res.status(500).json({ error: 'Ошибка при обработке запроса' });
   }
 });
 
@@ -996,7 +996,7 @@ app.get('/api/cars/:carId/reviews', async (req, res) => {
     return res.json({ reviews: rows });
   } catch (error) {
     console.error('Get reviews error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ РѕС‚Р·С‹РІРѕРІ' });
+    return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
   }
 });
 
@@ -1008,16 +1008,16 @@ app.post('/api/reviews', async (req, res) => {
     const normalizedRating = Number(rating);
 
     if (!carId || !normalizedName || !normalizedText || !Number.isInteger(normalizedRating)) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ С„РѕСЂРјС‹ РѕС‚Р·С‹РІР°' });
+      return res.status(400).json({ error: 'Заполните все поля формы отзыва' });
     }
     if (normalizedName.length < 2 || normalizedName.length > 60) {
-      return res.status(400).json({ error: 'РРјСЏ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 2 РґРѕ 60 СЃРёРјРІРѕР»РѕРІ' });
+      return res.status(400).json({ error: 'Имя должно содержать от 2 до 60 символов' });
     }
     if (normalizedText.length < 20 || normalizedText.length > 1000) {
-      return res.status(400).json({ error: 'РўРµРєСЃС‚ РѕС‚Р·С‹РІР° РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 20 РґРѕ 1000 СЃРёРјРІРѕР»РѕРІ' });
+      return res.status(400).json({ error: 'Текст отзыва должен содержать от 20 до 1000 символов' });
     }
     if (normalizedRating < 1 || normalizedRating > 5) {
-      return res.status(400).json({ error: 'РћС†РµРЅРєР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 5' });
+      return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
     }
 
     const authHeader = req.headers.authorization;
@@ -1038,10 +1038,10 @@ app.post('/api/reviews', async (req, res) => {
       [String(carId), userId, normalizedName, normalizedRating, normalizedText, getMySQLDateTime()]
     );
     await logActivity('review_create', { reviewId: result.lastID, carId });
-    return res.status(201).json({ success: true, message: 'РћС‚Р·С‹РІ РѕС‚РїСЂР°РІР»РµРЅ РЅР° РјРѕРґРµСЂР°С†РёСЋ', reviewId: result.lastID });
+    return res.status(201).json({ success: true, message: 'Отзыв отправлен на модерацию', reviewId: result.lastID });
   } catch (error) {
     console.error('Create review error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РѕС‚Р·С‹РІ' });
+    return res.status(500).json({ error: 'Не удалось отправить отзыв' });
   }
 });
 
@@ -1053,7 +1053,7 @@ app.get('/api/extra-options', async (req, res) => {
     return res.json({ options: rows });
   } catch (error) {
     console.error('Extra options error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РѕРїС†РёРё' });
+    return res.status(500).json({ error: 'Не удалось загрузить дополнительные опции' });
   }
 });
 
@@ -1061,7 +1061,7 @@ app.get('/api/promo-codes/validate', async (req, res) => {
   try {
     const promo = await getPromoByCode(req.query.code);
     if (!promo) {
-      return res.status(404).json({ valid: false, error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РёСЃС‚С‘Рє' });
+      return res.status(404).json({ valid: false, error: 'Промокод не найден или истек' });
     }
     return res.json({
       valid: true,
@@ -1073,7 +1073,7 @@ app.get('/api/promo-codes/validate', async (req, res) => {
     });
   } catch (error) {
     console.error('Promo validation error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось проверить промокод' });
   }
 });
 
@@ -1145,14 +1145,14 @@ app.get('/api/cars', async (req, res) => {
     return res.json({ cars: rows.map(parseCarRow) });
   } catch (error) {
     console.error('Cars list error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка БД' });
   }
 });
 
 app.get('/api/cars/:id', async (req, res) => {
   try {
     const row = await dbGet('SELECT * FROM cars WHERE id = ?', [req.params.id]);
-    if (!row) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    if (!row) return res.status(404).json({ error: 'Автомобиль не найден' });
     const car = parseCarRow(row);
     const promotion = await dbGet(
       `SELECT id, promoPrice, title, startDate, endDate
@@ -1177,7 +1177,7 @@ app.get('/api/cars/:id', async (req, res) => {
     return res.json({ car });
   } catch (error) {
     console.error('Car get error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка БД' });
   }
 });
 
@@ -1185,15 +1185,15 @@ app.get('/api/cars/:id/availability', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     if (!isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РґРёР°РїР°Р·РѕРЅ РґР°С‚' });
+      return res.status(400).json({ error: 'Некорректный диапазон дат' });
     }
     const car = await dbGet('SELECT id, title FROM cars WHERE id = ?', [req.params.id]);
-    if (!car) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    if (!car) return res.status(404).json({ error: 'Автомобиль не найден' });
     const available = await carIsAvailable(car.id, startDate, endDate);
     return res.json({ available, car });
   } catch (error) {
     console.error('Availability error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ РґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ' });
+    return res.status(500).json({ error: 'Не удалось проверить доступность' });
   }
 });
 
@@ -1223,22 +1223,22 @@ app.post('/api/bookings', async (req, res) => {
     } = req.body;
 
     if (!carId || !customerName || !customerEmail || !customerPhone || !isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ С„РѕСЂРјС‹ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
+      return res.status(400).json({ error: 'Заполните обязательные поля формы бронирования' });
     }
 
     const daysCount = daysBetween(startDate, endDate);
     if (daysCount < 1) {
-      return res.status(400).json({ error: 'РњРёРЅРёРјР°Р»СЊРЅС‹Р№ СЃСЂРѕРє Р°СЂРµРЅРґС‹ - 1 СЃСѓС‚РєРё' });
+      return res.status(400).json({ error: 'Минимальный срок аренды - 1 сутки' });
     }
 
     const car = await dbGet('SELECT * FROM cars WHERE id = ? AND status = ?', [carId, 'available']);
     if (!car) {
-      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РЅРµРґРѕСЃС‚СѓРїРµРЅ' });
+      return res.status(404).json({ error: 'Автомобиль не найден или недоступен' });
     }
 
     const available = await carIsAvailable(carId, startDate, endDate);
     if (!available) {
-      return res.status(409).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓР¶Рµ Р·Р°РЅСЏС‚ РЅР° РІС‹Р±СЂР°РЅРЅС‹Рµ РґР°С‚С‹' });
+      return res.status(409).json({ error: 'Автомобиль уже забронирован на выбранные даты' });
     }
 
     const optionIds = Array.isArray(selectedOptionIds)
@@ -1290,14 +1290,14 @@ app.post('/api/bookings', async (req, res) => {
     await addNotification({
       channel: 'admin',
       recipient: 'admin',
-      subject: 'РќРѕРІР°СЏ Р·Р°СЏРІРєР° РЅР° Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ',
+      subject: 'Новая заявка на бронирование',
       content: `${customerName} | ${customerPhone} | ${customerEmail} | ${startDate} - ${endDate}`,
       status: 'created'
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Р—Р°СЏРІРєР° РЅР° Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РїСЂРёРЅСЏС‚Р° Рё РѕС‚РїСЂР°РІР»РµРЅР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ',
+      message: 'Заявка на бронирование принята и отправлена администратору',
       booking: {
         id: result.lastID,
         status: 'pending',
@@ -1310,28 +1310,28 @@ app.post('/api/bookings', async (req, res) => {
     });
   } catch (error) {
     console.error('Booking create error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
+    return res.status(500).json({ error: 'Не удалось создать бронирование' });
   }
 });
 
 app.get('/api/bookings/pay/:token', async (req, res) => {
   try {
     const booking = await getBookingByPaymentToken(req.params.token);
-    if (!booking) return res.status(404).json({ error: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РЅРµ РЅР°Р№РґРµРЅР°' });
+    if (!booking) return res.status(404).json({ error: 'Ссылка на оплату не найдена' });
     const car = await dbGet('SELECT id, title, imageUrl FROM cars WHERE id = ?', [booking.carId]);
     return res.json({ booking: { ...booking, car } });
   } catch (error) {
     console.error('Payment info error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕРїР»Р°С‚Сѓ' });
+    return res.status(500).json({ error: 'Не удалось загрузить информацию об оплате' });
   }
 });
 
 app.post('/api/bookings/pay/:token', async (req, res) => {
   try {
     const booking = await getBookingByPaymentToken(req.params.token);
-    if (!booking) return res.status(404).json({ error: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РЅРµ РЅР°Р№РґРµРЅР°' });
+    if (!booking) return res.status(404).json({ error: 'Ссылка на оплату не найдена' });
     if (booking.status === 'paid') {
-      return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СѓР¶Рµ РѕРїР»Р°С‡РµРЅРѕ' });
+      return res.json({ success: true, message: 'Бронирование уже оплачено' });
     }
 
     const updatedAt = getMySQLDateTime();
@@ -1345,12 +1345,12 @@ app.post('/api/bookings/pay/:token', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'РћРїР»Р°С‚Р° РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ. РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ РїРѕРґРіРѕС‚РѕРІР»РµРЅРѕ РґР»СЏ РѕС‚РїСЂР°РІРєРё РЅР° РїРѕС‡С‚Сѓ.',
+      message: 'Оплата прошла успешно. Подтверждение бронирования отправлено для отпрвки на почту.',
       emailPreview
     });
   } catch (error) {
     console.error('Booking pay error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° РѕРїР»Р°С‚С‹' });
+    return res.status(500).json({ error: 'Ошибка оплаты' });
   }
 });
 
@@ -1385,7 +1385,7 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error('Stats error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ' });
+    return res.status(500).json({ error: 'Не удалось загрузить статистику' });
   }
 });
 
@@ -1398,7 +1398,7 @@ app.get('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ users: rows });
   } catch (error) {
     console.error('Admin users error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка БД' });
   }
 });
 
@@ -1406,10 +1406,10 @@ app.post('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { login, password, firstName, lastName, middleName, phone, email, birthDate, role = 'user' } = req.body;
     if (!login || !password || !firstName || !lastName || !email) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
+      return res.status(400).json({ error: 'Заполните обязательные поля' });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: 'РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 6 СЃРёРјРІРѕР»РѕРІ' });
+      return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' });
     }
     const createdAt = getMySQLDateTime();
     const result = await dbRun(
@@ -1421,10 +1421,10 @@ app.post('/api/admin/users', authMiddleware, adminOnly, async (req, res) => {
     return res.status(201).json({ success: true, user: { id: result.lastID, login, firstName, lastName, email, role, createdAt } });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј Р»РѕРіРёРЅРѕРј СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
+      return res.status(400).json({ error: 'Пользователь с таким логином уже существует' });
     }
     console.error('Admin create user error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
@@ -1433,7 +1433,7 @@ app.put('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) => {
     const userId = Number(req.params.id);
     const { firstName, lastName, middleName, phone, email, birthDate, role } = req.body;
     const current = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
-    if (!current) return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!current) return res.status(404).json({ error: 'Пользователь не найден' });
 
     await dbRun(
       `UPDATE users
@@ -1451,10 +1451,10 @@ app.put('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) => {
       ]
     );
     await logActivity('admin_user_update', { adminId: req.userId, userId });
-    return res.json({ success: true, message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РѕР±РЅРѕРІР»С‘РЅ' });
+    return res.json({ success: true, message: 'Пользователь обновлен' });
   } catch (error) {
     console.error('Admin update user error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
@@ -1462,17 +1462,17 @@ app.delete('/api/admin/users/:id', authMiddleware, adminOnly, async (req, res) =
   try {
     const userId = Number(req.params.id);
     if (userId === req.userId) {
-      return res.status(400).json({ error: 'РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ СЃР°РјРѕРіРѕ СЃРµР±СЏ' });
+      return res.status(400).json({ error: 'Нельзя удалить самого себя' });
     }
     const result = await dbRun('DELETE FROM users WHERE id = ?', [userId]);
     if (!result.changes) {
-      return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Пользователь не найден' });
     }
     await logActivity('admin_user_delete', { adminId: req.userId, userId });
-    return res.json({ success: true, message: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓРґР°Р»С‘РЅ' });
+    return res.json({ success: true, message: 'Пользователь удален' });
   } catch (error) {
     console.error('Admin delete user error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+    return res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
@@ -1482,7 +1482,7 @@ app.get('/api/admin/consultations', authMiddleware, adminOnly, async (req, res) 
     return res.json({ consultations: rows });
   } catch (error) {
     console.error('Admin consultations error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка БД' });
   }
 });
 
@@ -1497,7 +1497,7 @@ app.get('/api/admin/reviews', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ reviews: rows });
   } catch (error) {
     console.error('Admin reviews error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё Р·Р°РіСЂСѓР·РєРµ РѕС‚Р·С‹РІРѕРІ' });
+    return res.status(500).json({ error: 'Ошибка сервера при загрузке отзывов' });
   }
 });
 
@@ -1506,19 +1506,19 @@ app.patch('/api/admin/reviews/:id', authMiddleware, adminOnly, async (req, res) 
     const reviewId = Number(req.params.id);
     const status = req.body.status;
     if (!['published', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ СЃС‚Р°С‚СѓСЃ РјРѕРґРµСЂР°С†РёРё' });
+      return res.status(400).json({ error: 'Некорректный статус модерации' });
     }
     const now = getMySQLDateTime();
     const result = await dbRun(
       `UPDATE reviews SET status = ?, moderatedAt = ?, publishedAt = ?, moderatorId = ? WHERE id = ?`,
       [status, now, status === 'published' ? now : null, req.userId, reviewId]
     );
-    if (!result.changes) return res.status(404).json({ error: 'РћС‚Р·С‹РІ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!result.changes) return res.status(404).json({ error: 'Отзыв не найден' });
     await logActivity('admin_review_moderate', { adminId: req.userId, reviewId, status });
-    return res.json({ success: true, message: 'РЎС‚Р°С‚СѓСЃ РѕС‚Р·С‹РІР° РѕР±РЅРѕРІР»С‘РЅ' });
+    return res.json({ success: true, message: 'Статус отзыва обновлен' });
   } catch (error) {
     console.error('Admin moderate review error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ СЃС‚Р°С‚СѓСЃ РѕС‚Р·С‹РІР°' });
+    return res.status(500).json({ error: 'Не удалось обновить статус отзыва' });
   }
 });
 
@@ -1528,7 +1528,7 @@ app.get('/api/admin/cars', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ cars: rows.map(parseCarRow) });
   } catch (error) {
     console.error('Admin cars error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Р°РІС‚РѕРјРѕР±РёР»РµР№' });
+    return res.status(500).json({ error: 'Ошибка загрузки автомобилей' });
   }
 });
 
@@ -1564,7 +1564,7 @@ app.get('/api/admin/car-promotions', authMiddleware, adminOnly, async (req, res)
     return res.json({ promotions });
   } catch (error) {
     console.error('Admin car promotions error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё Р°РєС†РёР№' });
+    return res.status(500).json({ error: 'Ошибка загрузки акций' });
   }
 });
 
@@ -1572,14 +1572,14 @@ app.post('/api/admin/car-promotions', authMiddleware, adminOnly, async (req, res
   try {
     const { carId, promoPrice, title, startDate, endDate, isActive } = req.body;
     if (!carId || !promoPrice || !startDate || !endDate) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ Р°РєС†РёРё' });
+      return res.status(400).json({ error: 'Заполните все обязательные поля акции' });
     }
     if (!isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїРµСЂРёРѕРґ Р°РєС†РёРё' });
+      return res.status(400).json({ error: 'Некорректный период акции' });
     }
     const car = await dbGet('SELECT id FROM cars WHERE id = ?', [carId]);
     if (!car) {
-      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Автомобиль не найден' });
     }
     const now = getMySQLDateTime();
     await dbRun(
@@ -1588,10 +1588,10 @@ app.post('/api/admin/car-promotions', authMiddleware, adminOnly, async (req, res
       [carId, Number(promoPrice), title || null, startDate, endDate, isActive ? 1 : 0, now, now]
     );
     await logActivity('admin_car_promotion_create', { adminId: req.userId, carId, promoPrice, startDate, endDate });
-    return res.status(201).json({ success: true, message: 'РђРєС†РёСЏ РЅР° Р°РІС‚РѕРјРѕР±РёР»СЊ СЃРѕР·РґР°РЅР°' });
+    return res.status(201).json({ success: true, message: 'Акция на автомобиль создана' });
   } catch (error) {
     console.error('Admin create car promotion error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р°РєС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось создать акцию' });
   }
 });
 
@@ -1600,18 +1600,18 @@ app.put('/api/admin/car-promotions/:id', authMiddleware, adminOnly, async (req, 
     const promoId = Number(req.params.id);
     const { carId, promoPrice, title, startDate, endDate, isActive } = req.body;
     if (!carId || !promoPrice || !startDate || !endDate) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ Р°РєС†РёРё' });
+      return res.status(400).json({ error: 'Заполните все обязательные поля акции' });
     }
     if (!isValidDateRange(startDate, endDate)) {
-      return res.status(400).json({ error: 'РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїРµСЂРёРѕРґ Р°РєС†РёРё' });
+      return res.status(400).json({ error: 'Некорректный период акции' });
     }
     const promo = await dbGet('SELECT * FROM car_promotions WHERE id = ?', [promoId]);
     if (!promo) {
-      return res.status(404).json({ error: 'РђРєС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+      return res.status(404).json({ error: 'Акция не найдена' });
     }
     const car = await dbGet('SELECT id FROM cars WHERE id = ?', [carId]);
     if (!car) {
-      return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Автомобиль не найден' });
     }
     const now = getMySQLDateTime();
     await dbRun(
@@ -1621,10 +1621,10 @@ app.put('/api/admin/car-promotions/:id', authMiddleware, adminOnly, async (req, 
       [carId, Number(promoPrice), title || null, startDate, endDate, isActive ? 1 : 0, now, promoId]
     );
     await logActivity('admin_car_promotion_update', { adminId: req.userId, promoId, carId, promoPrice, startDate, endDate });
-    return res.json({ success: true, message: 'РђРєС†РёСЏ РѕР±РЅРѕРІР»РµРЅР°' });
+    return res.json({ success: true, message: 'Акция обновлена' });
   } catch (error) {
     console.error('Admin update car promotion error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ Р°РєС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось обновить акцию' });
   }
 });
 
@@ -1632,12 +1632,12 @@ app.delete('/api/admin/car-promotions/:id', authMiddleware, adminOnly, async (re
   try {
     const promoId = Number(req.params.id);
     const result = await dbRun('DELETE FROM car_promotions WHERE id = ?', [promoId]);
-    if (!result.changes) return res.status(404).json({ error: 'РђРєС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+    if (!result.changes) return res.status(404).json({ error: 'Акция не найдена' });
     await logActivity('admin_car_promotion_delete', { adminId: req.userId, promoId });
-    return res.json({ success: true, message: 'РђРєС†РёСЏ СѓРґР°Р»РµРЅР°' });
+    return res.json({ success: true, message: 'Акция удалена' });
   } catch (error) {
     console.error('Admin delete car promotion error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р°РєС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось удалить акцию' });
   }
 });
 
@@ -1681,7 +1681,7 @@ app.get('/api/stock/promotions', async (req, res) => {
     return res.json({ promotions });
   } catch (error) {
     console.error('Stock promotions error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°РєС†РёРё' });
+    return res.status(500).json({ error: 'Не удалось загрузить акции' });
   }
 });
 
@@ -1697,7 +1697,7 @@ app.post('/api/admin/cars', authMiddleware, adminOnly, upload.fields([
     } = req.body;
 
     if (!title || !brand || !model || !pricePerDay) {
-      return res.status(400).json({ error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ' });
+      return res.status(400).json({ error: 'Заполните обязательные поля' });
     }
 
     const previewFile = req.files?.previewImage?.[0];
@@ -1752,10 +1752,10 @@ app.post('/api/admin/cars', authMiddleware, adminOnly, upload.fields([
     );
 
     await logActivity('admin_car_create', { adminId: req.userId, carId: result.lastID });
-    return res.status(201).json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅ РЅР° СЃР°Р№С‚' });
+    return res.status(201).json({ success: true, message: 'Автомобиль успешно добавлен на сайт' });
   } catch (error) {
     console.error('Admin add car error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё' });
+    return res.status(500).json({ error: 'Ошибка при добавлении автомобиля' });
   }
 });
 
@@ -1766,7 +1766,7 @@ app.put('/api/admin/cars/:id', authMiddleware, adminOnly, upload.fields([
   try {
     const carId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM cars WHERE id = ?', [carId]);
-    if (!current) return res.status(404).json({ error: 'РђРІС‚РѕРјРѕР±РёР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!current) return res.status(404).json({ error: 'Автомобиль не найден' });
 
     const previewFile = req.files?.previewImage?.[0];
     const galleryFiles = req.files?.galleryImages || [];
@@ -1823,10 +1823,10 @@ app.put('/api/admin/cars/:id', authMiddleware, adminOnly, upload.fields([
       ]
     );
     await logActivity('admin_car_update', { adminId: req.userId, carId });
-    return res.json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ РѕР±РЅРѕРІР»С‘РЅ' });
+    return res.json({ success: true, message: 'Автомобиль обновлен' });
   } catch (error) {
     console.error('Admin update car error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ Р°РІС‚РѕРјРѕР±РёР»СЏ' });
+    return res.status(500).json({ error: 'Ошибка обновления автомобиля' });
   }
 });
 
@@ -1834,7 +1834,7 @@ app.delete('/api/admin/cars/:id', authMiddleware, adminOnly, async (req, res) =>
   try {
     const carId = Number(req.params.id);
     const current = await dbGet('SELECT imageUrl FROM cars WHERE id = ?', [carId]);
-    if (!current) return res.status(404).json({ error: 'РђРІС‚Рѕ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    if (!current) return res.status(404).json({ error: 'Автомобиль не найден' });
 
     await dbRun('DELETE FROM cars WHERE id = ?', [carId]);
     if (current.imageUrl && current.imageUrl.startsWith('/image/car-')) {
@@ -1844,10 +1844,10 @@ app.delete('/api/admin/cars/:id', authMiddleware, adminOnly, async (req, res) =>
       }
     }
     await logActivity('admin_car_delete', { adminId: req.userId, carId });
-    return res.json({ success: true, message: 'РђРІС‚РѕРјРѕР±РёР»СЊ СѓРґР°Р»С‘РЅ' });
+    return res.json({ success: true, message: 'Автомобиль удален' });
   } catch (error) {
     console.error('Admin delete car error:', error);
-    return res.status(500).json({ error: 'РћС€РёР±РєР° Р‘Р”' });
+    return res.status(500).json({ error: 'Ошибка удаления автомобиля' });
   }
 });
 
@@ -1866,7 +1866,7 @@ app.get('/api/admin/bookings', authMiddleware, adminOnly, async (req, res) => {
     return res.json({ bookings });
   } catch (error) {
     console.error('Admin bookings error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
+    return res.status(500).json({ error: 'Не удалось загрузить бронирования' });
   }
 });
 
@@ -1874,7 +1874,7 @@ app.patch('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res)
   try {
     const bookingId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-    if (!current) return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    if (!current) return res.status(404).json({ error: 'Бронирование не найдено' });
 
     const nextStatus = req.body.status || current.status;
     const adminComment = req.body.adminComment ?? current.adminComment;
@@ -1883,10 +1883,10 @@ app.patch('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res)
       [nextStatus, adminComment, getMySQLDateTime(), bookingId]
     );
     await logActivity('admin_booking_update', { adminId: req.userId, bookingId, status: nextStatus });
-    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕР±РЅРѕРІР»РµРЅРѕ' });
+    return res.json({ success: true, message: 'Бронирование обновлено' });
   } catch (error) {
     console.error('Admin update booking error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
+    return res.status(500).json({ error: 'Не удалось обновить бронирование' });
   }
 });
 
@@ -1894,9 +1894,9 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
   try {
     const bookingId = Number(req.params.id);
     const booking = await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]);
-    if (!booking) return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+    if (!booking) return res.status(404).json({ error: 'Бронирование не найдено' });
     const paymentUrl = booking.paymentUrl || `/payment/${booking.paymentToken}`;
-    const smsText = `РљР°СЂР·РµРЅ: СЃСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ ${paymentUrl}`;
+    const smsText = `Карзен: ссылка на оплату бронирования ${paymentUrl}`;
     const now = getMySQLDateTime();
 
     await dbRun(
@@ -1910,7 +1910,7 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
     await addNotification({
       channel: 'sms',
       recipient: booking.customerPhone,
-      subject: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ',
+      subject: 'Ссылка на оплату бронирования',
       content: smsText,
       status: 'prepared'
     });
@@ -1918,13 +1918,13 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
 
     return res.json({
       success: true,
-      message: 'РЎСЃС‹Р»РєР° РЅР° РѕРїР»Р°С‚Сѓ РїРѕРґРіРѕС‚РѕРІР»РµРЅР° РґР»СЏ РѕС‚РїСЂР°РІРєРё РїРѕ SMS',
+      message: 'Ссылка на оплату подтверждена для отправки по SMS',
       paymentUrl,
       smsText
     });
   } catch (error) {
     console.error('Send payment link error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРіРѕС‚РѕРІРёС‚СЊ СЃСЃС‹Р»РєСѓ РЅР° РѕРїР»Р°С‚Сѓ' });
+    return res.status(500).json({ error: 'Не удалось подтвердить ссылку на оплату' });
   }
 });
 
@@ -1947,7 +1947,7 @@ app.get('/api/bookings/my', authMiddleware, async (req, res) => {
     return res.json({ bookings });
   } catch (error) {
     console.error('Get user bookings error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р°СЂРµРЅРґС‹' });
+    return res.status(500).json({ error: 'Не удалось загрузить бронирования' });
   }
 });
 
@@ -1964,13 +1964,13 @@ app.get('/api/bookings/:id', authMiddleware, async (req, res) => {
       [bookingId, req.userId, req.userRole === 'admin' ? 1 : 0]
     );
     if (!booking) {
-      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+      return res.status(404).json({ error: 'Бронирование не найдено' });
     }
     booking.selectedOptions = safeJsonParse(booking.selectedOptionsJson, []);
     return res.json({ booking });
   } catch (error) {
     console.error('Get booking details error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РґРµС‚Р°Р»Рё Р±СЂРѕРЅРёСЂРѕРІР°РЅРёСЏ' });
+    return res.status(500).json({ error: 'Не удалось загрузить детали бронирования' });
   }
 });
 
@@ -1981,11 +1981,11 @@ app.post('/api/bookings/:id/cancel', authMiddleware, async (req, res) => {
     const booking = await dbGet('SELECT * FROM bookings WHERE id = ? AND userId = ?', [bookingId, req.userId]);
     
     if (!booking) {
-      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+      return res.status(404).json({ error: 'Бронирование не найдено' });
     }
     
     if (!['pending', 'payment_link_sent'].includes(booking.status)) {
-      return res.status(400).json({ error: 'РќРµРІРѕР·РјРѕР¶РЅРѕ РѕС‚РјРµРЅРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СЃ С‚Р°РєРёРј СЃС‚Р°С‚СѓСЃРѕРј' });
+      return res.status(400).json({ error: 'Невозможно отменить бронирование с таким статусом' });
     }
     
     await dbRun(
@@ -1994,10 +1994,10 @@ app.post('/api/bookings/:id/cancel', authMiddleware, async (req, res) => {
     );
     
     await logActivity('user_booking_cancelled', { userId: req.userId, bookingId });
-    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РѕС‚РјРµРЅРµРЅРѕ' });
+    return res.json({ success: true, message: 'Бронирование отменено' });
   } catch (error) {
     console.error('Cancel booking error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РјРµРЅРёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
+    return res.status(500).json({ error: 'Не удалось отменить бронирование' });
   }
 });
 
@@ -2007,13 +2007,13 @@ app.delete('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res
     const bookingId = Number(req.params.id);
     const result = await dbRun('DELETE FROM bookings WHERE id = ?', [bookingId]);
     if (!result.changes) {
-      return res.status(404).json({ error: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ РЅРµ РЅР°Р№РґРµРЅРѕ' });
+      return res.status(404).json({ error: 'Бронирование не найдено' });
     }
     await logActivity('admin_booking_delete', { adminId: req.userId, bookingId });
-    return res.json({ success: true, message: 'Р‘СЂРѕРЅРёСЂРѕРІР°РЅРёРµ СѓРґР°Р»РµРЅРѕ' });
+    return res.json({ success: true, message: 'Бронирование удалено' });
   } catch (error) {
     console.error('Admin delete booking error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёРµ' });
+    return res.status(500).json({ error: 'Не удалось удалить бронирование' });
   }
 });
 
@@ -2023,7 +2023,7 @@ app.get('/api/admin/promo-codes', authMiddleware, adminOnly, async (req, res) =>
     return res.json({ promoCodes: rows });
   } catch (error) {
     console.error('Promo admin list error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРјРѕРєРѕРґС‹' });
+    return res.status(500).json({ error: 'Не удалось загрузить промокоды' });
   }
 });
 
@@ -2031,7 +2031,7 @@ app.post('/api/admin/promo-codes', authMiddleware, adminOnly, async (req, res) =
   try {
     const { code, title, discountPercent, expiresAt, isActive } = req.body;
     if (!code || !discountPercent) {
-      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РєРѕРґ Рё СЂР°Р·РјРµСЂ СЃРєРёРґРєРё' });
+      return res.status(400).json({ error: 'Укажите код и размер скидки' });
     }
     await dbRun(
       `INSERT INTO promo_codes (code, title, discountPercent, isActive, createdAt, expiresAt)
@@ -2039,13 +2039,13 @@ app.post('/api/admin/promo-codes', authMiddleware, adminOnly, async (req, res) =
       [String(code).trim().toUpperCase(), title || null, Number(discountPercent), isActive === false ? 0 : 1, getMySQLDateTime(), expiresAt || null]
     );
     await logActivity('admin_promo_create', { adminId: req.userId, code });
-    return res.status(201).json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РґРѕР±Р°РІР»РµРЅ' });
+    return res.status(201).json({ success: true, message: 'Промокод добавлен' });
   } catch (error) {
     if (String(error.message || '').includes('UNIQUE')) {
-      return res.status(400).json({ error: 'РўР°РєРѕР№ РїСЂРѕРјРѕРєРѕРґ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚' });
+      return res.status(400).json({ error: 'Такой промокод уже существует' });
     }
     console.error('Promo create error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось добавить промокод' });
   }
 });
 
@@ -2053,7 +2053,7 @@ app.put('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, res
   try {
     const promoId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM promo_codes WHERE id = ?', [promoId]);
-    if (!current) return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!current) return res.status(404).json({ error: 'Промокод не найден' });
     await dbRun(
       `UPDATE promo_codes SET code = ?, title = ?, discountPercent = ?, isActive = ?, expiresAt = ? WHERE id = ?`,
       [
@@ -2066,10 +2066,10 @@ app.put('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, res
       ]
     );
     await logActivity('admin_promo_update', { adminId: req.userId, promoId });
-    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РѕР±РЅРѕРІР»С‘РЅ' });
+    return res.json({ success: true, message: 'Промокод обновлен' });
   } catch (error) {
     console.error('Promo update error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось обновить промокод' });
   }
 });
 
@@ -2077,12 +2077,12 @@ app.delete('/api/admin/promo-codes/:id', authMiddleware, adminOnly, async (req, 
   try {
     const promoId = Number(req.params.id);
     const result = await dbRun('DELETE FROM promo_codes WHERE id = ?', [promoId]);
-    if (!result.changes) return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
+    if (!result.changes) return res.status(404).json({ error: 'Промокод не найден' });
     await logActivity('admin_promo_delete', { adminId: req.userId, promoId });
-    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ СѓРґР°Р»С‘РЅ' });
+    return res.json({ success: true, message: 'Промокод удален' });
   } catch (error) {
     console.error('Promo delete error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось удалить промокод' });
   }
 });
 
@@ -2092,7 +2092,7 @@ app.get('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res) 
     return res.json({ options: rows });
   } catch (error) {
     console.error('Admin options error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РѕРїС†РёРё' });
+    return res.status(500).json({ error: 'Не удалось загрузить опции' });
   }
 });
 
@@ -2100,7 +2100,7 @@ app.post('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res)
   try {
     const { code, title, price, chargeType, isActive, sortOrder } = req.body;
     if (!code || !title) {
-      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РєРѕРґ Рё РЅР°Р·РІР°РЅРёРµ РѕРїС†РёРё' });
+      return res.status(400).json({ error: 'Укажите код и название опции' });
     }
     await dbRun(
       `INSERT INTO extra_options (code, title, price, chargeType, isActive, sortOrder, createdAt)
@@ -2116,10 +2116,10 @@ app.post('/api/admin/extra-options', authMiddleware, adminOnly, async (req, res)
       ]
     );
     await logActivity('admin_option_create', { adminId: req.userId, code });
-    return res.status(201).json({ success: true, message: 'РћРїС†РёСЏ РґРѕР±Р°РІР»РµРЅР°' });
+    return res.status(201).json({ success: true, message: 'Опция добавлена' });
   } catch (error) {
     console.error('Option create error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ РѕРїС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось добавить опцию' });
   }
 });
 
@@ -2127,7 +2127,7 @@ app.put('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req, r
   try {
     const optionId = Number(req.params.id);
     const current = await dbGet('SELECT * FROM extra_options WHERE id = ?', [optionId]);
-    if (!current) return res.status(404).json({ error: 'РћРїС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+    if (!current) return res.status(404).json({ error: 'Опция не найдена' });
     await dbRun(
       `UPDATE extra_options
        SET code = ?, title = ?, price = ?, chargeType = ?, isActive = ?, sortOrder = ?
@@ -2143,10 +2143,10 @@ app.put('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req, r
       ]
     );
     await logActivity('admin_option_update', { adminId: req.userId, optionId });
-    return res.json({ success: true, message: 'РћРїС†РёСЏ РѕР±РЅРѕРІР»РµРЅР°' });
+    return res.json({ success: true, message: 'Опция обновлена' });
   } catch (error) {
     console.error('Option update error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РѕРїС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось обновить опцию' });
   }
 });
 
@@ -2154,12 +2154,12 @@ app.delete('/api/admin/extra-options/:id', authMiddleware, adminOnly, async (req
   try {
     const optionId = Number(req.params.id);
     const result = await dbRun('DELETE FROM extra_options WHERE id = ?', [optionId]);
-    if (!result.changes) return res.status(404).json({ error: 'РћРїС†РёСЏ РЅРµ РЅР°Р№РґРµРЅР°' });
+    if (!result.changes) return res.status(404).json({ error: 'Опция не найдена' });
     await logActivity('admin_option_delete', { adminId: req.userId, optionId });
-    return res.json({ success: true, message: 'РћРїС†РёСЏ СѓРґР°Р»РµРЅР°' });
+    return res.json({ success: true, message: 'Опция удалена' });
   } catch (error) {
     console.error('Option delete error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕРїС†РёСЋ' });
+    return res.status(500).json({ error: 'Не удалось удалить опцию' });
   }
 });
 
@@ -2168,7 +2168,7 @@ app.get('/api/admin/site-content', authMiddleware, adminOnly, async (req, res) =
     return res.json({ content: await getSiteContentMap() });
   } catch (error) {
     console.error('Admin site content get error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
+    return res.status(500).json({ error: 'Не удалось загрузить контент сайта' });
   }
 });
 
@@ -2184,10 +2184,10 @@ app.put('/api/admin/site-content', authMiddleware, adminOnly, async (req, res) =
       );
     }
     await logActivity('admin_site_content_update', { adminId: req.userId, keys: Object.keys(content) });
-    return res.json({ success: true, message: 'РљРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р° РѕР±РЅРѕРІР»С‘РЅ' });
+    return res.json({ success: true, message: 'Контент сайта обновлен' });
   } catch (error) {
     console.error('Admin site content update error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРѕРЅС‚РµРЅС‚ СЃР°Р№С‚Р°' });
+    return res.status(500).json({ error: 'Не удалось обновить контент сайта' });
   }
 });
 
@@ -2197,7 +2197,7 @@ app.get('/api/admin/notifications', authMiddleware, adminOnly, async (req, res) 
     return res.json({ notifications: rows });
   } catch (error) {
     console.error('Notifications error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ' });
+    return res.status(500).json({ error: 'Не удалось загрузить уведомления' });
   }
 });
 
@@ -2212,7 +2212,7 @@ app.get('/api/admin/activity-log', authMiddleware, adminOnly, async (req, res) =
     });
   } catch (error) {
     console.error('Activity log error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р¶СѓСЂРЅР°Р» РґРµР№СЃС‚РІРёР№' });
+    return res.status(500).json({ error: 'Не удалось загрузить журнал действий' });
   }
 });
 
@@ -2255,31 +2255,31 @@ app.get('/api/admin/export/report.pdf', authMiddleware, adminOnly, async (req, r
     );
 
     const lines = [
-      'РћРЎРќРћР’РќР«Р• РџРћРљРђР—РђРўР•Р›Р',
-      '====================================================================',
-      ['Р”Р°С‚Р° РІС‹РіСЂСѓР·РєРё:', formatDateRu(getMySQLDateTime())],
+      'ОСНОВНЫЕ ПОКАЗАТЕЛИ',
+      '---------------------------------------------------------------------',
+      ['Дата выгрузки:', formatDateRu(getMySQLDateTime())],
       [],
-      'РЎРўРђРўРРЎРўРРљРђ РџРћР›Р¬Р—РћР’РђРўР•Р›Р•Р™ Р Р¤Р›РћРўРђ',
-      ['Р’СЃРµРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№:', String(stats.totalUsers)],
-      ['РђРєС‚РёРІРЅС‹С… Р°РІС‚РѕРјРѕР±РёР»РµР№:', String(stats.totalCars)],
+      'СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ И АВТОПАРКА',
+      ['Всего пользователей:', String(stats.totalUsers)],
+      ['Активных автомобилей:', String(stats.totalCars)],
       [],
-      'РЎРўРђРўРРЎРўРРљРђ РџРћ Р‘Р РћРќРР РћР’РђРќРРЇРњ',
-      ['Р’СЃРµРіРѕ Р±СЂРѕРЅРёСЂРѕРІР°РЅРёР№:', String(stats.totalBookings)],
-      ['  - РћРїР»Р°С‡РµРЅРѕ:', `${stats.paidBookings} (${new Intl.NumberFormat('ru-RU').format(stats.revenue)} СЂСѓР±.)`],
-      ['  - РќР° СЂР°СЃСЃРјРѕС‚СЂРµРЅРёРё:', `${stats.pendingBookings} (${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} СЂСѓР±.)`],
-      ['  - РћС‚РјРµРЅРµРЅРѕ:', String(stats.cancelledBookings)],
+      'СТАТИСТИКА ПО БРОНИРОВАНИЯМ',
+      ['Всего бронирований:', String(stats.totalBookings)],
+      ['  - Оплачено:', `${stats.paidBookings} (${new Intl.NumberFormat('ru-RU').format(stats.revenue)} Руб.)`],
+      ['  - В ожидании оплаты:', `${stats.pendingBookings} (${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} Руб.)`],
+      ['  - Отменено:', String(stats.cancelledBookings)],
       [],
-      'РЎРўРђРўРРЎРўРРљРђ РџРћ РЎРўРђРўРЈРЎРђРњ',
-      ...statusStats.map((s) => [`${s.status}:`, `${s.count} Р±СЂ. (${new Intl.NumberFormat('ru-RU').format(s.sum)} СЂСѓР±.)`]),
+      'СТАТИСТИКА ПО СТАТУСАМ БРОНИРОВАНИЙ',
+      ...statusStats.map((s) => [`${s.status}:`, `${s.count} бр. (${new Intl.NumberFormat('ru-RU').format(s.sum)} Руб.)`]),
       [],
-      'Р¤РРќРђРќРЎРћР’Р«Р™ РРўРћР“',
-      ['РџРѕР»СѓС‡РµРЅРѕ (РѕРїР»Р°С‡РµРЅРѕ):', `${new Intl.NumberFormat('ru-RU').format(stats.revenue)} СЂСѓР±.`],
-      ['Р’ РѕР¶РёРґР°РЅРёРё РѕРїР»Р°С‚С‹:', `${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} СЂСѓР±.`],
-      ['РџРѕС‚РµРЅС†РёР°Р»СЊРЅС‹Р№ РґРѕС…РѕРґ:', `${new Intl.NumberFormat('ru-RU').format(stats.revenue + stats.pendingRevenue)} СЂСѓР±.`],
+      'ФИНАНСОВЫЙ ОТЧЕТ',
+      ['Получено (оплачено):', `${new Intl.NumberFormat('ru-RU').format(stats.revenue)} Руб.`],
+      ['В ожидании оплаты:', `${new Intl.NumberFormat('ru-RU').format(stats.pendingRevenue)} Руб.`],
+      ['Потенциальный доход:', `${new Intl.NumberFormat('ru-RU').format(stats.revenue + stats.pendingRevenue)} Руб.`],
       [],
-      'РџРћРЎР›Р•Р”РќРР• Р‘Р РћРќРР РћР’РђРќРРЇ (10 С€С‚)',
-      '====================================================================',
-      ['ID', 'РђРІС‚Рѕ', 'РљР»РёРµРЅС‚', 'Р”Р°С‚С‹', 'РЎС‚Р°С‚СѓСЃ', 'РЎСѓРјРјР°']
+      'ПОСЛЕДНИЕ БРОНИРОВАНИЯ (10 шт)',
+      '---------------------------------------------------------------------',
+      ['ID', 'Автомобиль', 'Клиент', 'Даты', 'Статус', 'Сумма']
     ];
 
     recentBookings.forEach((booking) => {
@@ -2289,32 +2289,32 @@ app.get('/api/admin/export/report.pdf', authMiddleware, adminOnly, async (req, r
         (booking.customerName || 'N/A').substring(0, 12),
         `${booking.startDate}`,
         booking.status.substring(0, 10),
-        `${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)}СЂ`
+        `${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} Рублей`
       ]);
     });
 
     lines.push(
       [],
-      'РџРћРџРЈР›РЇР РќР«Р• РђР’РўРћРњРћР‘РР›Р (С‚РѕРї 6)',
-      '====================================================================',
-      ['РђРІС‚Рѕ', 'Р‘СЂРѕРЅРµР№', 'Р’С‹СЂСѓС‡РєР°']
+      'ПОПУЛЯРНЫЕ АВТОМОБИЛИ (топ 6)',
+      '---------------------------------------------------------------------',
+      ['Автомобиль', 'Бронирований', 'Выручка']
     );
 
     popularCars.forEach((car) => {
       lines.push([
         (car.title || 'N/A').substring(0, 20),
         String(car.bookingsCount),
-        `${new Intl.NumberFormat('ru-RU').format(car.earnings)} СЂ`
+        `${new Intl.NumberFormat('ru-RU').format(car.earnings)} Рублей`
       ]);
     });
 
-    const report = generateSimplePdf('РћРўР§Р•Рў РђР”РњРРќРРЎРўР РђРўРћР Рђ CARZEN', lines);
+    const report = generateSimplePdf('ОТЧЕТ АДМИНИСТРАТОРА Карзен', lines);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="carzen-report.txt"');
     return res.send(report);
   } catch (error) {
-    console.error('Export pdf error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РѕС‚С‡С‘С‚' });
+    console.error('Export txt error:', error);
+    return res.status(500).json({ error: 'Не удалось сформировать отчет' });
   }
 });
 
@@ -2333,7 +2333,7 @@ app.get('/api/user/promos', authMiddleware, async (req, res) => {
     return res.json({ promos: rows });
   } catch (error) {
     console.error('User promos load error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїСЂРѕРјРѕРєРѕРґС‹' });
+    return res.status(500).json({ error: 'Не удалось загрузить промокоды' });
   }
 });
 
@@ -2344,17 +2344,17 @@ app.post('/api/admin/users/:userId/promos', authMiddleware, adminOnly, async (re
     const { promoId } = req.body;
     
     if (!promoId) {
-      return res.status(400).json({ error: 'РЈРєР°Р¶РёС‚Рµ РїСЂРѕРјРѕРєРѕРґ' });
+      return res.status(400).json({ error: 'Укажите промокод' });
     }
     
     const promo = await dbGet('SELECT * FROM promo_codes WHERE id = ?', [promoId]);
     if (!promo) {
-      return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Промокод не найден' });
     }
     
     const user = await dbGet('SELECT id FROM users WHERE id = ?', [userId]);
     if (!user) {
-      return res.status(404).json({ error: 'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Пользователь не найден' });
     }
     
     // Check if user already has this promo
@@ -2363,7 +2363,7 @@ app.post('/api/admin/users/:userId/promos', authMiddleware, adminOnly, async (re
       [userId, promoId]
     );
     if (existing) {
-      return res.status(400).json({ error: 'Р­С‚РѕС‚ РїСЂРѕРјРѕРєРѕРґ СѓР¶Рµ РІС‹РґР°РЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ' });
+      return res.status(400).json({ error: 'Этот промокод уже выдан пользователю' });
     }
     
     await dbRun(
@@ -2373,10 +2373,10 @@ app.post('/api/admin/users/:userId/promos', authMiddleware, adminOnly, async (re
     );
     
     await logActivity('admin_assign_promo_to_user', { adminId: req.userId, userId, promoId });
-    return res.status(201).json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РІС‹РґР°РЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ' });
+    return res.status(201).json({ success: true, message: 'Промокод выдан пользователю' });
   } catch (error) {
     console.error('Assign promo error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РґР°С‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось выдать промокод' });
   }
 });
 
@@ -2390,21 +2390,21 @@ app.delete('/api/admin/users/:userId/promos/:userPromoId', authMiddleware, admin
       [userPromoId, userId]
     );
     if (!userPromo) {
-      return res.status(404).json({ error: 'РџСЂРѕРјРѕРєРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РЅРµ РЅР°Р№РґРµРЅ' });
+      return res.status(404).json({ error: 'Промокод пользователя не найден' });
     }
     
     await dbRun('DELETE FROM user_promos WHERE id = ?', [userPromoId]);
     await logActivity('admin_revoke_promo_from_user', { adminId: req.userId, userId, userPromoId });
-    return res.json({ success: true, message: 'РџСЂРѕРјРѕРєРѕРґ РѕС‚РѕР·РІР°РЅ' });
+    return res.json({ success: true, message: 'Промокод отозван' });
   } catch (error) {
     console.error('Revoke promo error:', error);
-    return res.status(500).json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РѕР·РІР°С‚СЊ РїСЂРѕРјРѕРєРѕРґ' });
+    return res.status(500).json({ error: 'Не удалось отозвать промокод' });
   }
 });
 
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
-  return res.status(500).json({ error: error.message || 'Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°' });
+  return res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера' });
 });
 
 initDb()
