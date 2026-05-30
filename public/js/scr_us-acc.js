@@ -284,20 +284,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    if (promosModalClose) {
-        promosModalClose.addEventListener('click', function () {
-            closeModal(promosModal);
-        });
-    }
-
-    if (promosModal) {
-        promosModal.addEventListener('click', function (event) {
-            if (event.target === promosModal) {
-                closeModal(promosModal);
-            }
-        });
-    }
-
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') {
             return;

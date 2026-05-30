@@ -217,11 +217,17 @@ class AdminPanel {
     const data = await this.request('/api/admin/bookings');
     const tbody = document.getElementById('bookingsTbody');
     tbody.innerHTML = data.bookings.map((booking) => {
+      const statusLabels = {
+        pending: 'Ожидает',
+        payment_link_sent: 'Ссылка отправлена',
+        paid: 'Оплачено',
+        cancelled: 'Отменено'
+      };
       const statuses = ['pending', 'payment_link_sent', 'paid', 'cancelled'];
       const currentStatus = booking.status || 'pending';
       const options = statuses.map((status) => `
         <option value="${status}" ${status === currentStatus ? 'selected' : ''}>
-          ${status}
+          ${statusLabels[status] || status}
         </option>`).join('');
       return `
       <tr>
@@ -231,7 +237,7 @@ class AdminPanel {
         <td>${booking.customerEmail || '-'}</td>
         <td>${booking.startDate} - ${booking.endDate}</td>
         <td>${new Intl.NumberFormat('ru-RU').format(booking.totalPrice)} ₽</td>
-        <td><span class="status ${currentStatus === 'paid' ? 'published' : currentStatus === 'payment_link_sent' ? 'pending' : currentStatus === 'cancelled' ? 'blocked' : ''}">${currentStatus}</span></td>
+        <td><span class="status ${currentStatus === 'paid' ? 'published' : currentStatus === 'payment_link_sent' ? 'pending' : currentStatus === 'cancelled' ? 'blocked' : ''}">${statusLabels[currentStatus] || currentStatus}</span></td>
         <td>
           <div class="review-actions">
             <select class="booking-status-select" data-id="${booking.id}">${options}</select>
