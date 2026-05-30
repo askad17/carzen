@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
 
         syncUserState(currentUser);
+        await loadUserRentals();
     } catch (error) {
         console.error('Profile load error:', error);
         localStorage.removeItem('carzen_token');
@@ -524,9 +525,11 @@ async function loadUserRentals() {
         }
         userBookings = data.bookings || [];
         filterRentals(currentRentalsFilter);
+        renderCurrentRentalsSummary(userBookings);
     } catch (error) {
         console.error('Load user rentals error:', error);
         rentalsList.innerHTML = '<div class="rentals-empty"><p>Не удалось загрузить аренды.</p></div>';
+        renderCurrentRentalsSummary([]);
     }
 }
 
@@ -626,6 +629,88 @@ function getBookingStatusText(status) {
         case 'cancelled': return 'Отменено';
         default: return status;
     }
+}
+
+function renderCurrentRentalsSummary(bookings) {
+    const profileMain = document.querySelector('.profile-main');
+    if (!profileMain) {
+        return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const currentBookings = bookings.filter((booking) => {
+        return booking.status !== 'cancelled' && booking.endDate >= today && booking.startDate <= today;
+    });
+
+    if (!currentBookings.length) {
+        profileMain.innerHTML = '<div class="rentals-empty"><p class="empty-text">Текущих аренд нет</p></div>';
+        return;
+    }
+
+    profileMain.innerHTML = `
+        <div class="rentals-list">
+            ${currentBookings.map((booking) => {
+                const statusText = getBookingStatusText(booking.status);
+                const optionsText = Array.isArray(booking.selectedOptions) && booking.selectedOptions.length
+                    ? booking.selectedOptions.map((option) => option.title || `Опция ${option.id}`).join(', ')
+                    : 'Нет дополнительных опций';
+                const carTitle = booking.carTitle || 'Автомобиль';
+                const carModel = booking.carBrand || '';
+                const totalPrice = new Intl.NumberFormat('ru-RU').format(booking.totalPrice || 0);
+
+                return `
+                    <div class="rentals-card">
+                        <div class="rentals-card-header">
+                            <div>
+                                <h3>${carTitle}</h3>
+                                <p>${carModel}</p>
+                            </div>
+                            <span class="status ${booking.status}">${statusText}</span>
+                        </div>
+                        <div class="rentals-card-body">
+                            <p><strong>Даты:</strong> ${booking.startDate} — ${booking.endDate}</p>
+                            <p><strong>Сумма:</strong> ${totalPrice} ₽</p>
+                            <p><strong>Опции:</strong> ${optionsText}</p>
+                            <p><strong>Email:</strong> ${booking.customerEmail || 'Не указан'}</p>
+                            <p><strong>Телефон:</strong> ${booking.customerPhone || 'Не указан'}</p>
+                        </div>
+                        <div class="rentals-card-actions">
+                            ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
+                            <button class="btn btn-primary view-booking-btn" data-id="${booking.id}">Подробнее</button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    profileMain.querySelectorAll('.cancel-booking-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = button.dataset.id;
+            if (!confirm('Отменить бронирование?')) return;
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('carzen_token') || localStorage.getItem('token')}`
+                    }
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Не удалось отменить бронирование');
+                await loadUserRentals();
+            } catch (error) {
+                console.error('Cancel booking failed:', error);
+                alert(error.message || 'Ошибка отмены бронирования');
+            }
+        });
+    });
+
+    profileMain.querySelectorAll('.view-booking-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const bookingId = button.dataset.id;
+            viewBookingDetails(bookingId);
+        });
+    });
 }
 
 async function viewBookingDetails(bookingId) {
