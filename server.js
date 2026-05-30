@@ -984,6 +984,7 @@ return res.json({ success: true, reply });
   }
 });
 
+
 app.get('/api/cars/:carId/reviews', async (req, res) => {
   try {
     const rows = await dbAll(
@@ -1705,7 +1706,7 @@ app.post('/api/admin/cars', authMiddleware, adminOnly, upload.fields([
     const uploadedGallery = galleryFiles.map((file) => `/image/${file.filename}`);
     const gallery = safeJsonParse(galleryJson, []);
 
-    // Р”РѕР±Р°РІР»СЏРµРј Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ С„РѕС‚Рѕ РІ РіР°Р»РµСЂРµСЋ
+   
     if (uploadedGallery.length) {
       uploadedGallery.forEach((imageUrl) => {
         if (!gallery.includes(imageUrl)) gallery.push(imageUrl);

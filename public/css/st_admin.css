@@ -1179,3 +1179,10 @@
     grid-template-columns: 1fr;
   }
 }
+.booking-status-select{
+    background-color: #000000;
+    border: 0.2px solid #74E6FF;
+    border-radius: 15px;
+    color: white;
+    padding: 6px 12px;
+}
