@@ -1350,7 +1350,7 @@ app.post('/api/bookings/pay/:token', async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Оплата прошла успешно. Подтверждение бронирования отправлено для отпрвки на почту.',
+      message: 'Оплата прошла успешно.',
       emailPreview
     });
   } catch (error) {

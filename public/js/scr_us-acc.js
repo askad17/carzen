@@ -512,10 +512,12 @@ async function loadUserRentals() {
         userBookings = data.bookings || [];
         filterRentals(currentRentalsFilter);
         renderCurrentRentalsSummary(userBookings);
+        renderPaymentNotice(userBookings);
     } catch (error) {
         console.error('Load user rentals error:', error);
         rentalsList.innerHTML = '<div class="rentals-empty"><p>Не удалось загрузить аренды.</p></div>';
         renderCurrentRentalsSummary([]);
+        renderPaymentNotice([]);
     }
 }
 
@@ -572,6 +574,7 @@ function renderRentals(bookings) {
                 </div>
                 <div class="rentals-card-actions">
                     ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
+                    ${booking.status === 'payment_link_sent' && booking.paymentUrl ? `<a class="btn btn-primary" href="${booking.paymentUrl}" target="_blank" rel="noopener">Оплатить бронь</a>` : ''}
                     <button class="btn btn-primary view-booking-btn" data-id="${booking.id}">Подробнее</button>
                 </div>
             </div>
@@ -618,8 +621,8 @@ function getBookingStatusText(status) {
 }
 
 function renderCurrentRentalsSummary(bookings) {
-    const profileMain = document.querySelector('.profile-main');
-    if (!profileMain) {
+    const profileMainContent = document.getElementById('profileMainContent');
+    if (!profileMainContent) {
         return;
     }
 
@@ -629,11 +632,11 @@ function renderCurrentRentalsSummary(bookings) {
     });
 
     if (!currentBookings.length) {
-        profileMain.innerHTML = '<div class="rentals-empty"><p class="empty-text">Текущих аренд нет</p></div>';
+        profileMainContent.innerHTML = '<div class="rentals-empty"><p class="empty-text">Текущих аренд нет</p></div>';
         return;
     }
 
-    profileMain.innerHTML = `
+    profileMainContent.innerHTML = `
         <div class="rentals-list">
             ${currentBookings.map((booking) => {
                 const statusText = getBookingStatusText(booking.status);
@@ -662,6 +665,7 @@ function renderCurrentRentalsSummary(bookings) {
                         </div>
                         <div class="rentals-card-actions">
                             ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
+                            ${booking.status === 'payment_link_sent' && booking.paymentUrl ? `<a class="btn btn-primary" href="${booking.paymentUrl}" target="_blank" rel="noopener">Оплатить бронь</a>` : ''}
                             <button class="btn btn-primary view-booking-btn" data-id="${booking.id}">Подробнее</button>
                         </div>
                     </div>
@@ -670,7 +674,7 @@ function renderCurrentRentalsSummary(bookings) {
         </div>
     `;
 
-    profileMain.querySelectorAll('.cancel-booking-btn').forEach((button) => {
+    profileMainContent.querySelectorAll('.cancel-booking-btn').forEach((button) => {
         button.addEventListener('click', async () => {
             const bookingId = button.dataset.id;
             if (!confirm('Отменить бронирование?')) return;
@@ -691,12 +695,37 @@ function renderCurrentRentalsSummary(bookings) {
         });
     });
 
-    profileMain.querySelectorAll('.view-booking-btn').forEach((button) => {
+    profileMainContent.querySelectorAll('.view-booking-btn').forEach((button) => {
         button.addEventListener('click', async () => {
             const bookingId = button.dataset.id;
             viewBookingDetails(bookingId);
         });
     });
+}
+
+function renderPaymentNotice(bookings) {
+    const notice = document.getElementById('accountNotice');
+    if (!notice) {
+        return;
+    }
+
+    const paymentBookings = bookings.filter((booking) => booking.status === 'payment_link_sent');
+    if (!paymentBookings.length) {
+        notice.style.display = 'none';
+        notice.innerHTML = '';
+        return;
+    }
+
+    const firstBooking = paymentBookings[0];
+    const countText = paymentBookings.length === 1
+        ? 'Вам прислали ссылку на оплату бронирования.'
+        : `Вам прислали ${paymentBookings.length} ссылок на оплату бронирований.`;
+
+    notice.innerHTML = `
+        <div class="notice-text">${countText}</div>
+        ${firstBooking.paymentUrl ? `<a class="btn btn-primary" href="${firstBooking.paymentUrl}" target="_blank" rel="noopener">Оплатить сейчас</a>` : ''}
+    `;
+    notice.style.display = 'flex';
 }
 
 async function viewBookingDetails(bookingId) {

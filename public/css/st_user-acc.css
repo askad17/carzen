@@ -153,6 +153,29 @@
     justify-content: center;
 }
 
+.account-notice {
+    display: none;
+    width: 100%;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    border-radius: 18px;
+    border: 1px solid rgba(116, 230, 255, 0.28);
+    background-color: rgba(12, 27, 38, 0.95);
+    color: #ffffff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.account-notice .notice-text {
+    font-family: Onest, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #ffffff;
+    flex: 1;
+}
+
 .rentals-empty {
     text-align: center;
 }
