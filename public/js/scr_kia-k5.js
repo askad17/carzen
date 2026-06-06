@@ -345,6 +345,11 @@ class CarPage {
     document.getElementById('bookingForm')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
+      if (!token) {
+        this.setNotice('Для бронирования необходимо войти или зарегистрироваться', 'error');
+        return;
+      }
+
       const payload = {
         carId: Number(this.carId),
         customerName: document.getElementById('bookingCustomerName').value.trim(),
@@ -445,11 +450,15 @@ class CarReviews {
     this.setFormState(true, 'Отправляем отзыв...');
     try {
       const token = localStorage.getItem('carzen_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Для оставления отзыва необходимо войти в систему');
+      }
+
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           carId: this.getCarId(),

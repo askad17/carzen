@@ -759,20 +759,20 @@ function generateToken(user) {
 
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Нет заголовка'});
+  if (!authHeader) return res.status(401).json({ error: 'Сначала зарегистрируйтесь и войдите на сайт' });
   const [type, token] = authHeader.split(' ');
-  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'Неверный формат' });
+  if (type !== 'Bearer' || !token) return res.status(401).json({ error: 'Недействительный токен. Сначала войдите на сайт' });
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     const row = await dbGet('SELECT id, role FROM users WHERE id = ?', [payload.id]);
-    if (!row) return res.status(401).json({ error: 'Пользователь не найден' });
+    if (!row) return res.status(401).json({ error: 'Пользователь не найден. Сначала войдите' });
     req.userId = row.id;
     req.userRole = row.role;
     req.isAdmin = row.role === 'admin';
     return next();
   } catch (error) {
-    return res.status(401).json({ error: 'Недействительный токен' });
+    return res.status(401).json({ error: 'Недействительный токен. Сначала войдите на сайт' });
   }
 }
 
@@ -1106,12 +1106,13 @@ app.get('/api/cars/:carId/reviews', async (req, res) => {
   }
 });
 
-app.post('/api/reviews', async (req, res) => {
+app.post('/api/reviews', authMiddleware, async (req, res) => {
   try {
     const { carId, authorName, rating, text } = req.body;
     const normalizedName = String(authorName || '').trim();
     const normalizedText = String(text || '').trim();
     const normalizedRating = Number(rating);
+    const userId = req.userId;
 
     if (!carId || !normalizedName || !normalizedText || !Number.isInteger(normalizedRating)) {
       return res.status(400).json({ error: 'Заполните все поля формы отзыва' });
@@ -1126,16 +1127,15 @@ app.post('/api/reviews', async (req, res) => {
       return res.status(400).json({ error: 'Оценка должна быть от 1 до 5' });
     }
 
-    const authHeader = req.headers.authorization;
-    let userId = null;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const payload = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
-        const user = await dbGet('SELECT id FROM users WHERE id = ?', [payload.id]);
-        userId = user?.id || null;
-      } catch (error) {
-        userId = null;
-      }
+    const completedBooking = await dbGet(
+      `SELECT COUNT(*) as count
+       FROM bookings
+       WHERE userId = ? AND carId = ? AND status = 'paid' AND endDate < CURRENT_DATE()`,
+      [userId, carId]
+    );
+
+    if (!completedBooking?.count) {
+      return res.status(403).json({ error: 'Отзыв можно оставить только после завершения аренды данного автомобиля' });
     }
 
     const result = await dbRun(
@@ -1143,7 +1143,7 @@ app.post('/api/reviews', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [String(carId), userId, normalizedName, normalizedRating, normalizedText, getMySQLDateTime()]
     );
-    await logActivity('review_create', { reviewId: result.lastID, carId });
+    await logActivity('review_create', { reviewId: result.lastID, carId, userId });
     return res.status(201).json({ success: true, message: 'Отзыв отправлен на модерацию', reviewId: result.lastID });
   } catch (error) {
     console.error('Create review error:', error);
@@ -1303,19 +1303,9 @@ app.get('/api/cars/:id/availability', async (req, res) => {
   }
 });
 
-app.post('/api/bookings', async (req, res) => {
+app.post('/api/bookings', authMiddleware, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    let userId = null;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const payload = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
-        const user = await dbGet('SELECT id FROM users WHERE id = ?', [payload.id]);
-        userId = user?.id || null;
-      } catch (error) {
-        userId = null;
-      }
-    }
+    const userId = req.userId;
 
     const {
       carId,

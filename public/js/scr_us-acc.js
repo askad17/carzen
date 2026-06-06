@@ -571,6 +571,7 @@ function renderRentals(bookings) {
                     <p><strong>Опции:</strong> ${optionsText}</p>
                     <p><strong>Email:</strong> ${booking.customerEmail || 'Не указан'}</p>
                     <p><strong>Телефон:</strong> ${booking.customerPhone || 'Не указан'}</p>
+                    ${booking.status === 'cancelled' ? '<p class="rentals-refund-note">Для возврата средств позвоните оператору по данному номеру 89123420973</p>' : ''}
                 </div>
                 <div class="rentals-card-actions">
                     ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
@@ -584,7 +585,7 @@ function renderRentals(bookings) {
     rentalsList.querySelectorAll('.cancel-booking-btn').forEach((button) => {
         button.addEventListener('click', async () => {
             const bookingId = button.dataset.id;
-            if (!confirm('Отменить бронирование?')) return;
+            if (!confirm('Вы уверены, что хотите отменить бронирование?')) return;
             try {
                 const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
                     method: 'POST',
@@ -662,6 +663,7 @@ function renderCurrentRentalsSummary(bookings) {
                             <p><strong>Опции:</strong> ${optionsText}</p>
                             <p><strong>Email:</strong> ${booking.customerEmail || 'Не указан'}</p>
                             <p><strong>Телефон:</strong> ${booking.customerPhone || 'Не указан'}</p>
+                            ${booking.status === 'cancelled' ? '<p class="rentals-refund-note">Для возврата средств позвоните оператору по данному номеру 89123420973</p>' : ''}
                         </div>
                         <div class="rentals-card-actions">
                             ${['pending', 'payment_link_sent'].includes(booking.status) ? `<button class="btn btn-secondary cancel-booking-btn" data-id="${booking.id}">Отменить</button>` : ''}
@@ -677,7 +679,7 @@ function renderCurrentRentalsSummary(bookings) {
     profileMainContent.querySelectorAll('.cancel-booking-btn').forEach((button) => {
         button.addEventListener('click', async () => {
             const bookingId = button.dataset.id;
-            if (!confirm('Отменить бронирование?')) return;
+            if (!confirm('Вы уверены, что хотите отменить бронирование?')) return;
             try {
                 const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
                     method: 'POST',
