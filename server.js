@@ -25,7 +25,12 @@ fs.mkdirSync(IMAGE_DIR, { recursive: true });
 fs.mkdirSync(MAIL_PREVIEW_DIR, { recursive: true });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/public', express.static(path.join(ROOT_DIR, 'public')));
@@ -44,6 +49,12 @@ const DB_CONFIG = {
   supportBigNumbers: true,
   bigNumberStrings: true
 };
+
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '1378189';
+const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY || 'test_MnsXzSyQ6eAYc6kM1DN7Xy0unO1xBMorNcKQsAFaiOc';
+const YOOKASSA_WEBHOOK_SECRET = process.env.YOOKASSA_WEBHOOK_SECRET || '';
+const HOST_URL = process.env.HOST_URL || `http://localhost:${PORT}`;
+const YOOKASSA_API_URL = 'https://api.yookassa.ru/v3';
 
 const pool = mysql.createPool(DB_CONFIG);
 
@@ -267,6 +278,83 @@ async function sendBookingEmail(booking, car) {
   });
 
   return `/public/mail-previews/${filename}`;
+}
+
+function getYookassaAuthHeader() {
+  return `Basic ${Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64')}`;
+}
+
+async function createYookassaPayment(booking, car) {
+  const amountValue = Number(booking.totalPrice).toFixed(2);
+  const payload = {
+    amount: {
+      value: amountValue,
+      currency: 'RUB'
+    },
+    capture: true,
+    confirmation: {
+      type: 'redirect',
+      return_url: `${HOST_URL}/payment/${booking.paymentToken}`
+    },
+    description: `Оплата бронирования Carzen №${booking.id}`,
+    metadata: {
+      bookingId: String(booking.id),
+      paymentToken: booking.paymentToken || ''
+    }
+  };
+
+  const response = await fetch(`${YOOKASSA_API_URL}/payments`, {
+    method: 'POST',
+    headers: {
+      Authorization: getYookassaAuthHeader(),
+      'Content-Type': 'application/json',
+      'Idempotence-Key': booking.paymentToken
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const message = data?.description || data?.message || JSON.stringify(data);
+    throw new Error(`YooKassa error: ${message}`);
+  }
+
+  return {
+    id: data.id,
+    status: data.status,
+    confirmationUrl: data.confirmation?.confirmation_url || data.confirmation?.url || null,
+    raw: data
+  };
+}
+
+async function getYookassaPaymentStatus(paymentId) {
+  const response = await fetch(`${YOOKASSA_API_URL}/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'GET',
+    headers: {
+      Authorization: getYookassaAuthHeader(),
+      'Content-Type': 'application/json'
+    }
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const message = data?.description || data?.message || JSON.stringify(data);
+    throw new Error(`YooKassa error: ${message}`);
+  }
+  return data;
+}
+
+function verifyYookassaWebhook(req) {
+  const signature = req.get('X-Request-Signature') || req.get('X-YooKassa-Signature') || req.get('x-request-signature');
+  if (!YOOKASSA_WEBHOOK_SECRET) {
+    return true;
+  }
+  if (!signature) {
+    return false;
+  }
+  const expected = crypto.createHmac('sha256', YOOKASSA_WEBHOOK_SECRET)
+    .update(req.rawBody || '')
+    .digest('base64');
+  return signature === expected;
 }
 
 function generateSimplePdf(title, lines) {
@@ -648,6 +736,10 @@ async function initDb() {
   await ensureColumn('cars', 'specsJson', 'TEXT');
   await ensureColumn('cars', 'priceTiersJson', 'TEXT');
   await ensureColumn('users', 'avatarUrl', "VARCHAR(255) DEFAULT '/image/avatar.png'");
+  await ensureColumn('bookings', 'paymentProviderId', 'VARCHAR(255)');
+  await ensureColumn('bookings', 'paymentGatewayUrl', 'TEXT');
+  await ensureColumn('bookings', 'paymentStatus', 'VARCHAR(100)');
+  await ensureColumn('bookings', 'paymentMetadataJson', 'TEXT');
 
   await ensureDefaultData();
 }
@@ -1324,6 +1416,34 @@ app.get('/api/bookings/pay/:token', async (req, res) => {
     const booking = await getBookingByPaymentToken(req.params.token);
     if (!booking) return res.status(404).json({ error: 'Ссылка на оплату не найдена' });
     const car = await dbGet('SELECT id, title, imageUrl FROM cars WHERE id = ?', [booking.carId]);
+
+    if (booking.paymentProviderId && booking.status !== 'paid') {
+      try {
+        const paymentData = await getYookassaPaymentStatus(booking.paymentProviderId);
+        const newStatus = paymentData.status;
+        if (newStatus !== booking.paymentStatus) {
+          await dbRun(
+            `UPDATE bookings SET paymentStatus = ?, updatedAt = ? WHERE id = ?`,
+            [newStatus, getMySQLDateTime(), booking.id]
+          );
+          booking.paymentStatus = newStatus;
+        }
+        if (newStatus === 'succeeded') {
+          const updatedAt = getMySQLDateTime();
+          await dbRun(
+            `UPDATE bookings SET status = 'paid', paidAt = ?, updatedAt = ? WHERE id = ?`,
+            [updatedAt, updatedAt, booking.id]
+          );
+          booking.status = 'paid';
+          booking.paidAt = updatedAt;
+          await sendBookingEmail({ ...booking, status: 'paid', paidAt: updatedAt }, car);
+          await logActivity('booking_paid', { bookingId: booking.id, paymentProviderId: booking.paymentProviderId });
+        }
+      } catch (paymentError) {
+        console.warn('YooKassa payment status check failed:', paymentError.message || paymentError);
+      }
+    }
+
     return res.json({ booking: { ...booking, car } });
   } catch (error) {
     console.error('Payment info error:', error);
@@ -1339,23 +1459,97 @@ app.post('/api/bookings/pay/:token', async (req, res) => {
       return res.json({ success: true, message: 'Бронирование уже оплачено' });
     }
 
-    const updatedAt = getMySQLDateTime();
-    await dbRun(
-      `UPDATE bookings SET status = 'paid', paidAt = ?, updatedAt = ? WHERE id = ?`,
-      [updatedAt, updatedAt, booking.id]
-    );
     const car = await dbGet('SELECT id, title, imageUrl FROM cars WHERE id = ?', [booking.carId]);
-    const emailPreview = await sendBookingEmail({ ...booking, status: 'paid', paidAt: updatedAt }, car);
-    await logActivity('booking_paid', { bookingId: booking.id });
+    if (!car) {
+      return res.status(404).json({ error: 'Автомобиль не найден' });
+    }
+
+    if (booking.paymentGatewayUrl) {
+      return res.json({
+        success: true,
+        message: 'Ссылка на оплату уже создана. Перенаправляем на платёжный шлюз.',
+        paymentUrl: booking.paymentGatewayUrl
+      });
+    }
+
+    const ykPayment = await createYookassaPayment(booking, car);
+    const updatedAt = getMySQLDateTime();
+
+    await dbRun(
+      `UPDATE bookings SET
+         paymentProviderId = ?,
+         paymentGatewayUrl = ?,
+         paymentStatus = ?,
+         status = 'payment_link_sent',
+         updatedAt = ?
+       WHERE id = ?`,
+      [
+        ykPayment.id,
+        ykPayment.confirmationUrl,
+        ykPayment.status,
+        updatedAt,
+        booking.id
+      ]
+    );
+
+    await logActivity('booking_payment_link_created', {
+      bookingId: booking.id,
+      yookassaPaymentId: ykPayment.id,
+      paymentStatus: ykPayment.status
+    });
 
     return res.json({
       success: true,
-      message: 'Оплата прошла успешно.',
-      emailPreview
+      message: 'Платёж создан. Перенаправляем на безопасную страницу оплаты.',
+      paymentUrl: ykPayment.confirmationUrl
     });
   } catch (error) {
     console.error('Booking pay error:', error);
-    return res.status(500).json({ error: 'Ошибка оплаты' });
+    return res.status(500).json({ error: error.message || 'Ошибка оплаты' });
+  }
+});
+
+app.post('/api/payments/yookassa-webhook', async (req, res) => {
+  try {
+    if (!verifyYookassaWebhook(req)) {
+      console.warn('YooKassa webhook signature verification failed');
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    const event = req.body;
+    if (!event || event.type !== 'payment.succeeded') {
+      return res.json({ received: true });
+    }
+
+    const payment = event.object;
+    const bookingId = Number(payment?.metadata?.bookingId || 0);
+    const booking = bookingId ? await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]) : null;
+
+    if (!booking) {
+      console.warn('YooKassa webhook: booking not found', payment?.metadata);
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.status === 'paid') {
+      return res.json({ received: true, message: 'Booking already paid' });
+    }
+
+    const updatedAt = getMySQLDateTime();
+    await dbRun(
+      `UPDATE bookings
+       SET status = 'paid', paidAt = ?, paymentStatus = ?, updatedAt = ?
+       WHERE id = ?`,
+      [updatedAt, payment.status, updatedAt, booking.id]
+    );
+
+    const car = await dbGet('SELECT id, title, imageUrl FROM cars WHERE id = ?', [booking.carId]);
+    await sendBookingEmail({ ...booking, status: 'paid', paidAt: updatedAt }, car);
+    await logActivity('booking_paid', { bookingId: booking.id, paymentProviderId: payment.id });
+
+    return res.json({ received: true });
+  } catch (error) {
+    console.error('YooKassa webhook error:', error);
+    return res.status(500).json({ error: 'Webhook handling failed' });
   }
 });
 
@@ -1900,18 +2094,40 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
     const bookingId = Number(req.params.id);
     const booking = await dbGet('SELECT * FROM bookings WHERE id = ?', [bookingId]);
     if (!booking) return res.status(404).json({ error: 'Бронирование не найдено' });
-    const paymentUrl = booking.paymentUrl || `/payment/${booking.paymentToken}`;
-    const smsText = `Карзен: ссылка на оплату бронирования ${paymentUrl}`;
-    const now = getMySQLDateTime();
+    if (booking.status === 'paid') {
+      return res.json({ success: true, message: 'Бронирование уже оплачено' });
+    }
 
-    await dbRun(
-      `UPDATE bookings
-       SET status = CASE WHEN status = 'pending' THEN 'payment_link_sent' ELSE status END,
-           paymentUrl = ?, paymentSmsText = ?, paymentSentAt = ?, updatedAt = ?
-       WHERE id = ?`,
-      [paymentUrl, smsText, now, now, bookingId]
-    );
+    const car = await dbGet('SELECT id, title FROM cars WHERE id = ?', [booking.carId]);
+    if (!car) return res.status(404).json({ error: 'Автомобиль не найден' });
 
+    let paymentLink = booking.paymentGatewayUrl;
+    let paymentProviderId = booking.paymentProviderId;
+    let paymentStatus = booking.paymentStatus;
+
+    if (!paymentLink) {
+      const ykPayment = await createYookassaPayment(booking, car);
+      paymentProviderId = ykPayment.id;
+      paymentLink = ykPayment.confirmationUrl;
+      paymentStatus = ykPayment.status;
+
+      await dbRun(
+        `UPDATE bookings
+         SET paymentProviderId = ?, paymentGatewayUrl = ?, paymentStatus = ?, status = 'payment_link_sent', updatedAt = ?
+         WHERE id = ?`,
+        [paymentProviderId, paymentLink, paymentStatus, getMySQLDateTime(), bookingId]
+      );
+    } else {
+      await dbRun(
+        `UPDATE bookings
+         SET status = CASE WHEN status = 'pending' THEN 'payment_link_sent' ELSE status END,
+             updatedAt = ?
+         WHERE id = ?`,
+        [getMySQLDateTime(), bookingId]
+      );
+    }
+
+    const smsText = `Карзен: ссылка на оплату бронирования ${paymentLink}`;
     await addNotification({
       channel: 'sms',
       recipient: booking.customerPhone,
@@ -1919,17 +2135,17 @@ app.post('/api/admin/bookings/:id/send-payment-link', authMiddleware, adminOnly,
       content: smsText,
       status: 'prepared'
     });
-    await logActivity('admin_send_payment_link', { adminId: req.userId, bookingId });
+    await logActivity('admin_send_payment_link', { adminId: req.userId, bookingId, paymentProviderId, paymentStatus });
 
     return res.json({
       success: true,
       message: 'Ссылка на оплату подтверждена для отправки по SMS',
-      paymentUrl,
+      paymentUrl: paymentLink,
       smsText
     });
   } catch (error) {
     console.error('Send payment link error:', error);
-    return res.status(500).json({ error: 'Не удалось подтвердить ссылку на оплату' });
+    return res.status(500).json({ error: error.message || 'Не удалось подтвердить ссылку на оплату' });
   }
 });
 

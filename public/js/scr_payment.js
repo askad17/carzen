@@ -3,6 +3,27 @@ function paymentTokenFromUrl() {
   return parts[parts.length - 1];
 }
 
+async function pollBookingStatus(token, paymentNote, payButton) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      const response = await fetch(`/api/bookings/pay/${token}`);
+      const data = await response.json();
+      if (!response.ok) break;
+      const booking = data.booking;
+      if (booking.status === 'paid') {
+        paymentNote.textContent = 'Оплата подтверждена. Статус: оплачен.';
+        payButton.disabled = true;
+        payButton.textContent = 'Оплачено';
+        return;
+      }
+    } catch (error) {
+      break;
+    }
+  }
+  paymentNote.textContent = 'Оплата пока не подтверждена. Страница обновится автоматически через несколько секунд.';
+}
+
 async function loadPaymentPage() {
   const token = paymentTokenFromUrl();
   const paymentInfo = document.getElementById('paymentInfo');
@@ -25,21 +46,32 @@ async function loadPaymentPage() {
 
     if (booking.status === 'paid') {
       payButton.disabled = true;
-      payButton.textContent = 'Уже оплачено';
+      payButton.textContent = 'Оплачено';
       paymentNote.textContent = 'Бронирование уже оплачено.';
       return;
     }
 
+    if (booking.paymentGatewayUrl) {
+      paymentNote.textContent = 'Оплата ожидает подтверждения. Если вы только что оплатили, подождите несколько секунд.';
+      pollBookingStatus(token, paymentNote, payButton);
+    }
+
     payButton.addEventListener('click', async () => {
       payButton.disabled = true;
-      payButton.textContent = 'Оплачиваем...';
+      payButton.textContent = 'Подготовка оплаты...';
       const payResponse = await fetch(`/api/bookings/pay/${token}`, { method: 'POST' });
       const payData = await payResponse.json();
       if (!payResponse.ok) {
         throw new Error(payData.error || 'Ошибка оплаты');
       }
-      paymentNote.textContent = `${payData.message}${payData.emailPreview ? ` Письмо сохранено: ${payData.emailPreview}` : ''}`;
-      payButton.textContent = 'Оплачено';
+      if (payData.paymentUrl) {
+        paymentNote.textContent = 'Перенаправляем на безопасную страницу оплаты...';
+        window.location.href = payData.paymentUrl;
+        return;
+      }
+      paymentNote.textContent = payData.message || 'Платёж создан.';
+      payButton.textContent = 'Оплатить';
+      payButton.disabled = false;
     });
   } catch (error) {
     console.error('Payment page error:', error);
