@@ -35,6 +35,15 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/public', express.static(path.join(ROOT_DIR, 'public')));
 app.use('/image', express.static(IMAGE_DIR));
+app.get('/sogladhenie.pdf', (req, res) => {
+  const agreementPath = path.join(ROOT_DIR, 'sogladhenie.pdf');
+  if (!fs.existsSync(agreementPath)) {
+    return res.status(404).send('Файл соглашения не найден');
+  }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'inline; filename="sogladhenie.pdf"');
+  return res.sendFile(agreementPath);
+});
 
 const DB_CONFIG = {
   host: MYSQL_HOST,
