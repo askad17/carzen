@@ -207,8 +207,13 @@ class AdminPanel {
     tbody.querySelectorAll('.admin-delete-car').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!confirm('Удалить автомобиль?')) return;
-        await this.request(`/api/admin/cars/${button.dataset.id}`, { method: 'DELETE' });
-        await this.loadCars();
+        try {
+          await this.request(`/api/admin/cars/${button.dataset.id}`, { method: 'DELETE' });
+          await this.loadCars();
+        } catch (error) {
+          alert(error.message || 'Не удалось удалить автомобиль');
+          console.error('Delete car error:', error);
+        }
       });
     });
   }

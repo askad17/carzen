@@ -2034,6 +2034,13 @@ app.delete('/api/admin/cars/:id', authMiddleware, adminOnly, async (req, res) =>
     const current = await dbGet('SELECT imageUrl FROM cars WHERE id = ?', [carId]);
     if (!current) return res.status(404).json({ error: 'Автомобиль не найден' });
 
+    // Запретим удаление автомобиля, если по нему есть бронирования
+    const bookingsCountRow = await dbGet('SELECT COUNT(*) as total FROM bookings WHERE carId = ?', [carId]);
+    const bookingsTotal = Number(bookingsCountRow?.total || 0);
+    if (bookingsTotal > 0) {
+      return res.status(400).json({ error: 'Невозможно удалить автомобиль: существуют связанные бронирования' });
+    }
+
     await dbRun('DELETE FROM cars WHERE id = ?', [carId]);
     if (current.imageUrl && current.imageUrl.startsWith('/image/car-')) {
       const absolutePath = path.join(ROOT_DIR, current.imageUrl.replace('/image/', 'image/'));
