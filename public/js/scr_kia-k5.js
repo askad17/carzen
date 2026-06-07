@@ -190,12 +190,27 @@ class CarPage {
 
     console.log(`Slide transition: ${oldIndex} -> ${this.currentIndex}`);
 
-    sliderImage.style.opacity = '0.2';
-    setTimeout(() => {
-      sliderImage.src = this.slideImages[this.currentIndex];
+    // Подгружаем новое изображение в фоне и меняем src только после загрузки,
+    // чтобы избежать краткого мерцания/показа фонового цвета браузера.
+    const newSrc = this.slideImages[this.currentIndex];
+    sliderImage.style.opacity = '0';
+    const preloader = new Image();
+    preloader.src = newSrc;
+    preloader.onload = () => {
+      sliderImage.src = newSrc;
       sliderImage.alt = `${this.car.title} - фото ${this.currentIndex + 1}`;
-      sliderImage.style.opacity = '1';
-    }, 180);
+      requestAnimationFrame(() => {
+        sliderImage.style.opacity = '1';
+      });
+    };
+    preloader.onerror = () => {
+      // На случай ошибки — всё равно сменим src (пользователь увидит fallback)
+      sliderImage.src = newSrc;
+      sliderImage.alt = `${this.car.title} - фото ${this.currentIndex + 1}`;
+      requestAnimationFrame(() => {
+        sliderImage.style.opacity = '1';
+      });
+    };
 
     // Обновляем активную точку
     document.querySelectorAll('.dot').forEach((dot, dotIndex) => {
